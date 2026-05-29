@@ -2426,15 +2426,42 @@ function renderCategoryAdmin() {
   if (!wrap) return;
   wrap.innerHTML = "";
 
+  // 자동저장 디바운스
+  let _catSaveTimer = null;
+  async function autoSaveCategories() {
+    const st = document.getElementById("catSaveStatus");
+    if (st) { st.textContent = "저장 중..."; st.className = "cat-save-status saving"; }
+    try {
+      await api("PUT", "/api/categories", PART_CATEGORIES);
+      if (st) { st.textContent = "✓ 저장됨"; st.className = "cat-save-status saved"; }
+      setTimeout(() => { if (st) { st.textContent = ""; } }, 2500);
+    } catch (e) {
+      if (st) { st.textContent = `⚠ 저장 실패: ${e.message}`; st.className = "cat-save-status error"; }
+    }
+  }
+  function scheduleSave() {
+    if (_catSaveTimer) clearTimeout(_catSaveTimer);
+    const st = document.getElementById("catSaveStatus");
+    if (st) { st.textContent = "수정 중..."; st.className = "cat-save-status pending"; }
+    _catSaveTimer = setTimeout(autoSaveCategories, 400);
+  }
+
+  // 상태바
+  const statusBar = document.createElement("div");
+  statusBar.className = "cat-status-bar";
+  statusBar.innerHTML = `
+    <span class="cat-status-label">파트별 카테고리① · ② 관리</span>
+    <span id="catSaveStatus" class="cat-save-status"></span>
+    <button class="btn-primary small" id="catSaveAllBtn">💾 전체 저장</button>
+  `;
+  wrap.appendChild(statusBar);
+  statusBar.querySelector("#catSaveAllBtn").addEventListener("click", autoSaveCategories);
+
   const parts = Object.keys(PART_CATEGORIES);
 
   parts.forEach((part) => {
-    const cat1Map = PART_CATEGORIES[part]; // { cat1: [cat2, ...] }
-
     const card = document.createElement("div");
     card.className = "cat-part-card";
-
-    // 헤더
     card.innerHTML = `
       <div class="cat-part-head">
         <span class="cat-part-name">📂 ${esc(part)}</span>
@@ -2450,13 +2477,12 @@ function renderCategoryAdmin() {
       const cat1Keys = Object.keys(PART_CATEGORIES[part] || {});
 
       cat1Keys.forEach((cat1) => {
-        const cat2List = [...(PART_CATEGORIES[part][cat1] || [])];
         const block = document.createElement("div");
         block.className = "cat1-block";
         block.innerHTML = `
           <div class="cat1-head">
             <input class="cat1-name" value="${esc(cat1)}" data-orig="${esc(cat1)}" placeholder="카테고리①" />
-            <button class="btn-danger small cat1-del" data-cat1="${esc(cat1)}" title="카테고리① 삭제">✕ 삭제</button>
+            <button class="btn-danger small cat1-del" title="카테고리① 삭제">✕ 삭제</button>
           </div>
           <div class="cat2-list" id="cat2list_${CSS.escape(part)}_${CSS.escape(cat1)}"></div>
           <div class="cat2-add-input-row">
@@ -2466,25 +2492,25 @@ function renderCategoryAdmin() {
         `;
         body.appendChild(block);
 
-        // cat2 chip 렌더
+        // cat2 chips
         const cat2ListEl = block.querySelector(".cat2-list");
         function renderCat2Chips() {
-          const currentCat2 = PART_CATEGORIES[part][cat1] || [];
+          const cur = PART_CATEGORIES[part][cat1] || [];
           cat2ListEl.innerHTML = "";
-          currentCat2.forEach((c2, idx) => {
+          cur.forEach((c2, idx) => {
             const chip = document.createElement("div");
             chip.className = "cat2-chip";
-            chip.innerHTML = `<input value="${esc(c2)}" data-idx="${idx}" /><button class="cat2-del" data-idx="${idx}">✕</button>`;
-            // 수정
+            chip.innerHTML = `<input value="${esc(c2)}" /><button class="cat2-del">✕</button>`;
             chip.querySelector("input").addEventListener("change", (e) => {
-              const newVal = e.target.value.trim();
-              if (!newVal) return;
-              PART_CATEGORIES[part][cat1][idx] = newVal;
+              const v = e.target.value.trim();
+              if (!v) return;
+              PART_CATEGORIES[part][cat1][idx] = v;
+              scheduleSave();
             });
-            // 삭제
             chip.querySelector(".cat2-del").addEventListener("click", () => {
               PART_CATEGORIES[part][cat1].splice(idx, 1);
               renderCat2Chips();
+              scheduleSave();
             });
             cat2ListEl.appendChild(chip);
           });
@@ -2500,6 +2526,7 @@ function renderCategoryAdmin() {
           PART_CATEGORIES[part][cat1].push(v);
           addInput.value = "";
           renderCat2Chips();
+          scheduleSave();
         };
         addInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addCat2(); } });
         block.querySelector(".btn-cat-add").addEventListener("click", addCat2);
@@ -2513,6 +2540,7 @@ function renderCategoryAdmin() {
           PART_CATEGORIES[part] = {};
           entries.forEach(([k, v]) => { PART_CATEGORIES[part][k === orig ? newName : k] = v; });
           e.target.dataset.orig = newName;
+          scheduleSave();
         });
 
         // cat1 삭제
@@ -2520,10 +2548,11 @@ function renderCategoryAdmin() {
           if (!confirm(`"${cat1}" 카테고리①을 삭제하시겠습니까?`)) return;
           delete PART_CATEGORIES[part][cat1];
           rebuildPartUI();
+          scheduleSave();
         });
       });
 
-      // cat1 추가 행
+      // cat1 추가
       const addRow = document.createElement("div");
       addRow.className = "cat-add-row";
       addRow.innerHTML = `<input placeholder="새 카테고리① 입력" /><button class="btn-ghost small">+ 카테고리① 추가</button>`;
@@ -2536,22 +2565,11 @@ function renderCategoryAdmin() {
         PART_CATEGORIES[part][v] = [];
         addCat1Input.value = "";
         rebuildPartUI();
+        scheduleSave();
       };
       addCat1Input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addCat1(); } });
       addRow.querySelector("button").addEventListener("click", addCat1);
       body.appendChild(addRow);
-
-      // 저장 버튼
-      const saveBar = document.createElement("div");
-      saveBar.className = "cat-save-bar";
-      saveBar.innerHTML = `<button class="btn-primary" id="saveCat_${CSS.escape(part)}">💾 ${esc(part)} 저장</button>`;
-      saveBar.querySelector("button").addEventListener("click", async () => {
-        try {
-          await api("PUT", "/api/categories", PART_CATEGORIES);
-          showToast(`${part} 카테고리가 저장되었습니다.`, "ok");
-        } catch (e) { alert(e.message); }
-      });
-      body.appendChild(saveBar);
     }
 
     rebuildPartUI();

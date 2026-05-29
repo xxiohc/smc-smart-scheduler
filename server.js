@@ -202,7 +202,7 @@ async function _ghSaveDb(db) {
   }
 }
 
-const _emptyDb = () => ({ members: [], reports: [], events: [], recurring: [], tasks: [], feedbacks: [] });
+const _emptyDb = () => ({ members: [], reports: [], events: [], recurring: [], tasks: [], feedbacks: [], categories: {} });
 
 async function loadDb() {
   if (_ghEnabled()) {
@@ -285,6 +285,7 @@ async function ensureDefaultData() {
   if (!db.recurring){ db.recurring= []; dirty = true; }
   if (!db.tasks)    { db.tasks    = []; dirty = true; }
   if (!db.feedbacks){ db.feedbacks= []; dirty = true; }
+  if (!db.categories){ db.categories = {}; dirty = true; }
   // 빈 DB면 시드 멤버로 초기화
   if (db.members.length === 0) {
     db.members = SEED_MEMBERS.map(m => ({ ...m }));

@@ -933,6 +933,17 @@ input, select, textarea { outline: none; }
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 12px 0 0; border-top: 1px solid var(--line); margin-top: 4px;
 }
+.cat-status-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius); margin-bottom: 12px;
+}
+.cat-status-label { font-size: 13px; font-weight: 700; color: var(--ink); flex: 1; }
+.cat-save-status { font-size: 12px; font-weight: 500; min-width: 90px; text-align: right; }
+.cat-save-status.saving { color: var(--primary); }
+.cat-save-status.saved  { color: var(--good); }
+.cat-save-status.pending { color: var(--muted); }
+.cat-save-status.error  { color: var(--danger); }
 
 /* ── Modal ───────────────────────────────────────────────── */
 .modal-overlay {
