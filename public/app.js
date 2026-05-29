@@ -658,6 +658,26 @@ function renderWeekTasksList() {
     });
 
   sorted.forEach(({ t, i }) => container.appendChild(createWeekTaskItem(t, i)));
+  updateRoutineBannerBtns();
+}
+
+/* 배너 추가 버튼 상태 동기화 — weekTasks 변경 시 호출 */
+function updateRoutineBannerBtns() {
+  const banner = $("routineDueBanner");
+  if (!banner || banner.classList.contains("hidden")) return;
+  banner.querySelectorAll(".routine-due-item-add").forEach((btn) => {
+    const task = (S.tasks || []).find((t) => t.id === btn.dataset.id);
+    if (!task) return;
+    const taskText = task.category || task.title || "";
+    const stillAdded = S.weekTasks.some((w) => w.text === taskText);
+    if (stillAdded) {
+      btn.textContent = "✓ 추가됨";
+      btn.classList.add("added");
+    } else {
+      btn.textContent = "+ 이번 주 추가";
+      btn.classList.remove("added");
+    }
+  });
 }
 
 function createWeekTaskItem(item, idx) {
