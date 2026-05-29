@@ -874,6 +874,62 @@ input, select, textarea { outline: none; }
 .admin-pin-input:focus { border-color: var(--primary); outline: none; }
 .admin-pin-error { font-size: 12px; color: var(--warn); min-height: 16px; }
 
+/* ── 카테고리 관리 ────────────────────────────────────────── */
+.cat-admin-wrap { display: flex; flex-direction: column; gap: 20px; }
+.cat-part-card {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.cat-part-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: #f1f5f9; border-bottom: 1px solid var(--line);
+}
+.cat-part-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+.cat-part-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.cat1-block {
+  border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden;
+}
+.cat1-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; background: #f8faff; border-bottom: 1px solid var(--line);
+}
+.cat1-name {
+  flex: 1; font-size: 14px; font-weight: 700; color: var(--ink);
+  background: none; border: none; padding: 2px 4px;
+  border-radius: 4px; transition: background 0.1s;
+}
+.cat1-name:focus { background: #fff; outline: 2px solid var(--primary); }
+.cat2-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; min-height: 44px; }
+.cat2-chip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--primary-soft); border-radius: 20px;
+  padding: 3px 10px 3px 12px; font-size: 13px; color: var(--primary);
+}
+.cat2-chip input {
+  background: none; border: none; font-size: 13px; color: var(--primary);
+  width: auto; min-width: 40px; max-width: 160px; padding: 0;
+  font-weight: 600;
+}
+.cat2-chip input:focus { outline: none; border-bottom: 1px solid var(--primary); }
+.cat2-del {
+  background: none; border: none; color: var(--primary); font-size: 14px;
+  cursor: pointer; padding: 0 2px; line-height: 1; opacity: 0.6;
+}
+.cat2-del:hover { opacity: 1; }
+.cat2-add-input-row { display: flex; gap: 6px; padding: 0 14px 10px; }
+.cat2-add-input {
+  flex: 1; border: 1px dashed var(--line-strong); border-radius: 20px;
+  padding: 4px 12px; font-size: 13px; background: #fafbff;
+}
+.cat2-add-input:focus { outline: none; border-color: var(--primary); }
+.btn-cat-add { font-size: 12px; padding: 4px 12px; }
+.cat-add-row { display: flex; gap: 8px; align-items: center; }
+.cat-add-row input { flex: 1; border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 12px; font-size: 14px; }
+.cat-save-bar {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 0 0; border-top: 1px solid var(--line); margin-top: 4px;
+}
+
 /* ── Modal ───────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(25, 31, 40, 0.4);

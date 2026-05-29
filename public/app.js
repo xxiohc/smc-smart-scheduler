@@ -2393,8 +2393,148 @@ async function verifyAdminPin() {
   }
 }
 
+/* ── 카테고리 관리 (관리자 전용) ──────────────────────────── */
+function renderCategoryAdmin() {
+  const wrap = $("catAdminWrap");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  const parts = Object.keys(PART_CATEGORIES);
+
+  parts.forEach((part) => {
+    const cat1Map = PART_CATEGORIES[part]; // { cat1: [cat2, ...] }
+
+    const card = document.createElement("div");
+    card.className = "cat-part-card";
+
+    // 헤더
+    card.innerHTML = `
+      <div class="cat-part-head">
+        <span class="cat-part-name">📂 ${esc(part)}</span>
+      </div>
+      <div class="cat-part-body" id="catBody_${CSS.escape(part)}"></div>
+    `;
+    wrap.appendChild(card);
+
+    const body = card.querySelector(`#catBody_${CSS.escape(part)}`);
+
+    function rebuildPartUI() {
+      body.innerHTML = "";
+      const cat1Keys = Object.keys(PART_CATEGORIES[part] || {});
+
+      cat1Keys.forEach((cat1) => {
+        const cat2List = [...(PART_CATEGORIES[part][cat1] || [])];
+        const block = document.createElement("div");
+        block.className = "cat1-block";
+        block.innerHTML = `
+          <div class="cat1-head">
+            <input class="cat1-name" value="${esc(cat1)}" data-orig="${esc(cat1)}" placeholder="카테고리①" />
+            <button class="btn-danger small cat1-del" data-cat1="${esc(cat1)}" title="카테고리① 삭제">✕ 삭제</button>
+          </div>
+          <div class="cat2-list" id="cat2list_${CSS.escape(part)}_${CSS.escape(cat1)}"></div>
+          <div class="cat2-add-input-row">
+            <input class="cat2-add-input" placeholder="카테고리② 추가 후 Enter" />
+            <button class="btn-ghost small btn-cat-add">+ 추가</button>
+          </div>
+        `;
+        body.appendChild(block);
+
+        // cat2 chip 렌더
+        const cat2ListEl = block.querySelector(".cat2-list");
+        function renderCat2Chips() {
+          const currentCat2 = PART_CATEGORIES[part][cat1] || [];
+          cat2ListEl.innerHTML = "";
+          currentCat2.forEach((c2, idx) => {
+            const chip = document.createElement("div");
+            chip.className = "cat2-chip";
+            chip.innerHTML = `<input value="${esc(c2)}" data-idx="${idx}" /><button class="cat2-del" data-idx="${idx}">✕</button>`;
+            // 수정
+            chip.querySelector("input").addEventListener("change", (e) => {
+              const newVal = e.target.value.trim();
+              if (!newVal) return;
+              PART_CATEGORIES[part][cat1][idx] = newVal;
+            });
+            // 삭제
+            chip.querySelector(".cat2-del").addEventListener("click", () => {
+              PART_CATEGORIES[part][cat1].splice(idx, 1);
+              renderCat2Chips();
+            });
+            cat2ListEl.appendChild(chip);
+          });
+        }
+        renderCat2Chips();
+
+        // cat2 추가
+        const addInput = block.querySelector(".cat2-add-input");
+        const addCat2 = () => {
+          const v = addInput.value.trim();
+          if (!v) return;
+          if (!PART_CATEGORIES[part][cat1]) PART_CATEGORIES[part][cat1] = [];
+          PART_CATEGORIES[part][cat1].push(v);
+          addInput.value = "";
+          renderCat2Chips();
+        };
+        addInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCat2(); } });
+        block.querySelector(".btn-cat-add").addEventListener("click", addCat2);
+
+        // cat1 이름 수정
+        block.querySelector(".cat1-name").addEventListener("change", (e) => {
+          const orig = e.target.dataset.orig;
+          const newName = e.target.value.trim();
+          if (!newName || newName === orig) return;
+          const entries = Object.entries(PART_CATEGORIES[part]);
+          PART_CATEGORIES[part] = {};
+          entries.forEach(([k, v]) => { PART_CATEGORIES[part][k === orig ? newName : k] = v; });
+          e.target.dataset.orig = newName;
+        });
+
+        // cat1 삭제
+        block.querySelector(".cat1-del").addEventListener("click", () => {
+          if (!confirm(`"${cat1}" 카테고리①을 삭제하시겠습니까?`)) return;
+          delete PART_CATEGORIES[part][cat1];
+          rebuildPartUI();
+        });
+      });
+
+      // cat1 추가 행
+      const addRow = document.createElement("div");
+      addRow.className = "cat-add-row";
+      addRow.innerHTML = `<input placeholder="새 카테고리① 입력" /><button class="btn-ghost small">+ 카테고리① 추가</button>`;
+      const addCat1Input = addRow.querySelector("input");
+      const addCat1 = () => {
+        const v = addCat1Input.value.trim();
+        if (!v) return;
+        if (!PART_CATEGORIES[part]) PART_CATEGORIES[part] = {};
+        if (PART_CATEGORIES[part][v]) { alert("이미 존재하는 카테고리①입니다."); return; }
+        PART_CATEGORIES[part][v] = [];
+        addCat1Input.value = "";
+        rebuildPartUI();
+      };
+      addCat1Input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCat1(); } });
+      addRow.querySelector("button").addEventListener("click", addCat1);
+      body.appendChild(addRow);
+
+      // 저장 버튼
+      const saveBar = document.createElement("div");
+      saveBar.className = "cat-save-bar";
+      saveBar.innerHTML = `<button class="btn-primary" id="saveCat_${CSS.escape(part)}">💾 ${esc(part)} 저장</button>`;
+      saveBar.querySelector("button").addEventListener("click", async () => {
+        try {
+          await api("PUT", "/api/categories", PART_CATEGORIES);
+          showToast(`${part} 카테고리가 저장되었습니다.`, "ok");
+        } catch (e) { alert(e.message); }
+      });
+      body.appendChild(saveBar);
+    }
+
+    rebuildPartUI();
+  });
+}
+
 async function renderAdmin() {
   await fetchMembers();
+  await fetchCategories();
+  renderCategoryAdmin();
   const table = $("memberTable");
   const roleLabel = { admin: "팀장", leader: "파트장", member: "팀원" };
 
@@ -2751,7 +2891,7 @@ const TASK_STATUS_LABELS = { waiting: "대기", in_progress: "진행중", done: 
 const TASK_PRIORITY_LABELS = { high: "긴급", normal: "보통", low: "낮음" };
 
 /* ── 파트별 업무 카테고리 (Excel 2026-05-29 기준) ──────────── */
-const PART_CATEGORIES = {
+const DEFAULT_PART_CATEGORIES = {
   "재무관리파트": {
     "월 결산":   ["비용 마감", "결산보고서 상신"],
     "연 결산":   ["회계감사", "세무조정", "부서별 입찰현황", "보건산업진흥원 공시"],
@@ -2801,6 +2941,18 @@ const PART_CATEGORIES = {
     "기타 업무": [],
   },
 };
+
+// 런타임 카테고리 (서버에서 로드, fallback은 DEFAULT_PART_CATEGORIES)
+let PART_CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_PART_CATEGORIES));
+
+async function fetchCategories() {
+  try {
+    const data = await api("GET", "/api/categories");
+    if (data && Object.keys(data).length > 0) {
+      PART_CATEGORIES = data;
+    }
+  } catch (e) { /* 서버 카테고리 없으면 기본값 유지 */ }
+}
 
 /** 현재 사용자(또는 대상 팀원)의 파트별 cat1 키 목록 반환 */
 function getPartCat1List(part) {

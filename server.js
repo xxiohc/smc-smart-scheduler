@@ -976,6 +976,23 @@ async function handleDeleteEvent(req, res, id) {
   json(res, { ok: true });
 }
 
+async function handleGetCategories(req, res) {
+  const db = await loadDb();
+  json(res, db.categories || {});
+}
+
+async function handleUpdateCategories(req, res) {
+  const memberId = getMemberFromRequest(req);
+  if (!memberId) return err(res, "인증이 필요합니다.", 401);
+  const db = await loadDb();
+  const caller = db.members.find((m) => m.id === memberId);
+  if (caller?.role !== "admin") return err(res, "관리자 권한이 필요합니다.", 403);
+  const body = await parseBody(req);
+  db.categories = body;
+  await saveDb(db);
+  json(res, { ok: true, categories: db.categories });
+}
+
 async function handleGetMe(req, res) {
   const memberId = getMemberFromRequest(req);
   if (!memberId) return err(res, "인증이 필요합니다.", 401);
@@ -1076,6 +1093,9 @@ async function handler(req, res) {
       if (method === "PUT") return handleUpdateTask(req, res, taskMatch[1]);
       if (method === "DELETE") return handleDeleteTask(req, res, taskMatch[1]);
     }
+
+    if (path === "/api/categories" && method === "GET") return handleGetCategories(req, res);
+    if (path === "/api/categories" && method === "PUT") return handleUpdateCategories(req, res);
 
     if (path === "/api/recurring" && method === "GET") return handleGetRecurring(req, res, url);
     if (path === "/api/recurring" && method === "POST") return handleCreateRecurring(req, res);
