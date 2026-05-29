@@ -508,7 +508,7 @@ function renderWeekTasksList() {
   container.innerHTML = "";
 
   if (S.weekTasks.length === 0) {
-    container.innerHTML = '<div class="task-list-empty">업무를 추가하거나 백로그에서 불러오세요.</div>';
+    container.innerHTML = '<div class="task-list-empty">직접 입력하거나 루틴 업무 리스트·지난 주 업무를 불러오세요.</div>';
     return;
   }
 
