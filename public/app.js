@@ -730,26 +730,90 @@ function createWeekTaskItem(item, idx) {
   setTimeout(() => autoResize(ta), 0);
   inner.appendChild(ta);
 
-  // ── 세부업무 (있을 때만, 작은 폰트) ──
-  if (subs.length > 0) {
-    const subWrap = document.createElement("div");
-    subWrap.className = "week-task-subs";
-    subs.forEach((s) => {
-      const sStatus = s.status || (s.done ? "done" : "in_progress");
-      const cls = { waiting: "sub-wait", in_progress: "sub-prog", done: "sub-done" }[sStatus] || "";
-      const lbl = { waiting: "대기", in_progress: "진행중", done: "완료" }[sStatus] || "";
-      const row = document.createElement("div");
-      row.className = "week-task-sub-row" + (s.done ? " done" : "");
-      row.innerHTML = `
-        <span class="wts-dot ${cls}"></span>
-        <span class="wts-text">${esc(s.text)}</span>
-        <span class="sub-status-badge ${cls}">${lbl}</span>
-        ${s.due_date ? `<span class="sub-date-badge">${s.due_date.slice(5).replace("-","/")} </span>` : ""}
-      `;
-      subWrap.appendChild(row);
+  // ── 세부업무 영역 (편집 가능) ──
+  if (!S.weekTasks[idx].subtasks) S.weekTasks[idx].subtasks = [];
+
+  const subsWrap = document.createElement("div");
+  subsWrap.className = "week-task-subs-wrap";
+
+  function rebuildSubs() {
+    subsWrap.innerHTML = "";
+    const curSubs = S.weekTasks[idx].subtasks || [];
+
+    if (curSubs.length > 0) {
+      const subList = document.createElement("div");
+      subList.className = "week-task-subs";
+      curSubs.forEach((s, si) => {
+        const sStatus = s.status || (s.done ? "done" : "in_progress");
+        const cls = { waiting: "sub-wait", in_progress: "sub-prog", done: "sub-done" }[sStatus] || "sub-prog";
+        const lbl = { waiting: "대기", in_progress: "진행중", done: "완료" }[sStatus] || "진행중";
+
+        const row = document.createElement("div");
+        row.className = "week-task-sub-row" + (sStatus === "done" ? " done" : "");
+
+        const dot = document.createElement("span");
+        dot.className = `wts-dot ${cls}`;
+
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.className = "wts-input";
+        inp.value = s.text || "";
+        inp.placeholder = "세부업무 내용";
+        inp.addEventListener("input", (e) => { S.weekTasks[idx].subtasks[si].text = e.target.value; });
+        inp.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.isComposing) {
+            e.preventDefault();
+            S.weekTasks[idx].subtasks.push({ id: genLocalId(), text: "", status: "in_progress", done: false });
+            rebuildSubs();
+            const inputs = subsWrap.querySelectorAll(".wts-input");
+            if (inputs.length) inputs[inputs.length - 1].focus();
+          }
+        });
+
+        const stBtn = document.createElement("button");
+        stBtn.className = `sub-status-badge ${cls}`;
+        stBtn.textContent = lbl;
+        stBtn.title = "클릭하여 상태 변경";
+        stBtn.addEventListener("click", () => {
+          const sts = ["in_progress", "done", "waiting"];
+          const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
+          const nxt = sts[(sts.indexOf(cur) + 1) % sts.length];
+          S.weekTasks[idx].subtasks[si].status = nxt;
+          S.weekTasks[idx].subtasks[si].done = (nxt === "done");
+          rebuildSubs();
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "wts-sub-del";
+        delBtn.textContent = "✕";
+        delBtn.addEventListener("click", () => {
+          S.weekTasks[idx].subtasks.splice(si, 1);
+          rebuildSubs();
+        });
+
+        row.appendChild(dot);
+        row.appendChild(inp);
+        row.appendChild(stBtn);
+        row.appendChild(delBtn);
+        subList.appendChild(row);
+      });
+      subsWrap.appendChild(subList);
+    }
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "wts-add-btn";
+    addBtn.textContent = "+ 세부업무 추가";
+    addBtn.addEventListener("click", () => {
+      S.weekTasks[idx].subtasks.push({ id: genLocalId(), text: "", status: "in_progress", done: false });
+      rebuildSubs();
+      const inputs = subsWrap.querySelectorAll(".wts-input");
+      if (inputs.length) inputs[inputs.length - 1].focus();
     });
-    inner.appendChild(subWrap);
+    subsWrap.appendChild(addBtn);
   }
+
+  rebuildSubs();
+  inner.appendChild(subsWrap);
 
   // ── 날짜 입력 ──
   const dateIn = document.createElement("input");

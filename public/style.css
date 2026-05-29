@@ -388,15 +388,16 @@ input, select, textarea { outline: none; }
 .week-task-ta::placeholder { color: var(--muted); }
 
 /* ── 세부업무 리스트 ─ */
+.week-task-subs-wrap { padding: 4px 0 0 0; }
 .week-task-subs {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 5px 0 2px 2px;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 0 0 4px 2px;
 }
 .week-task-sub-row {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--subtle); flex-wrap: wrap;
+  font-size: 12px; color: var(--subtle);
 }
-.week-task-sub-row.done .wts-text { text-decoration: line-through; color: var(--muted); }
+.week-task-sub-row.done .wts-input { text-decoration: line-through; color: var(--muted); }
 .wts-dot {
   width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
@@ -404,6 +405,27 @@ input, select, textarea { outline: none; }
 .wts-dot.sub-prog { background: var(--primary); }
 .wts-dot.sub-done { background: var(--good); }
 .wts-text { flex: 0 0 auto; }
+.wts-input {
+  flex: 1; min-width: 0;
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 2px 6px; font-size: 12px; color: var(--ink);
+  background: var(--bg);
+}
+.wts-input:focus { outline: none; border-color: var(--primary); }
+.sub-status-badge { cursor: pointer; }
+.wts-sub-del {
+  flex-shrink: 0; background: none; border: none;
+  color: var(--muted); cursor: pointer; font-size: 11px;
+  padding: 1px 4px; border-radius: 3px; line-height: 1;
+}
+.wts-sub-del:hover { color: var(--danger); background: var(--danger-soft, #fef2f2); }
+.wts-add-btn {
+  background: none; border: none;
+  color: var(--primary); font-size: 11px; font-weight: 500;
+  cursor: pointer; padding: 2px 2px; margin-top: 2px;
+  opacity: 0.7;
+}
+.wts-add-btn:hover { opacity: 1; text-decoration: underline; }
 
 .task-item-actions { display: flex; flex-direction: column; gap: 5px; align-items: center; }
 .task-status {
