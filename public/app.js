@@ -401,6 +401,17 @@ async function fetchMembers() {
 function renderDashWeekHeader() {
   const { year, week } = S.dash;
   $("dashWeekLabel").textContent = weekLabel(year, week);
+  // 연도 진행률
+  const ws = weekStart(year, week);
+  const jan1 = new Date(year, 0, 1);
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const totalDays = isLeap ? 366 : 365;
+  const dayNum = Math.round((ws - jan1) / 86400000) + 1;
+  const pct = Math.min(100, Math.max(0, Math.round((dayNum / totalDays) * 100)));
+  const fill = $("yearProgressFill");
+  const lbl  = $("yearProgressLabel");
+  if (fill) fill.style.width = pct + "%";
+  if (lbl)  lbl.textContent = `${year}년 ${pct}% 경과`;
 }
 
 /* 구형 보고서(last_results/next_plans)와 신형(tasks) 하위호환 헬퍼 */
@@ -2731,7 +2742,7 @@ function buildTaskCard(task, opts = {}) {
   const editBtn = document.createElement("button");
   editBtn.className = "btn-ghost small";
   editBtn.textContent = "수정";
-  editBtn.addEventListener("click", () => openTaskModal(task.id));
+  editBtn.addEventListener("click", () => openTaskModal(task.id, { simple: true }));
 
   const delBtn = document.createElement("button");
   delBtn.className = "btn-danger small";
@@ -2990,7 +3001,7 @@ function buildRecurringItem(item, d, isThisWeek, num = null) {
 }
 
 function openTaskModal(id, modalOpts = {}) {
-  const { addToWeek = false } = modalOpts;
+  const { addToWeek = false, simple = false } = modalOpts;
   const task   = id ? S.tasks.find((t) => t.id === id) : null;
   const isNew  = !task;
   const targetMember = S.taskTargetMemberId ? S.members.find((m) => m.id === S.taskTargetMemberId) : null;
@@ -3113,6 +3124,7 @@ function openTaskModal(id, modalOpts = {}) {
         </div>
       </div>
 
+      ${!simple ? `
       <div class="form-field">
         <label>세부 업무 <span class="field-hint">(선택) 항목별 마감일·상태 설정 가능</span></label>
         <div id="mst-list" class="mst-list mst-list-v2"></div>
@@ -3125,9 +3137,9 @@ function openTaskModal(id, modalOpts = {}) {
       <div class="form-field">
         <label>메모 <span class="field-hint">(선택)</span></label>
         <textarea id="tf-note" rows="2" placeholder="추가 내용, 참고사항 등">${esc(task?.note || "")}</textarea>
-      </div>
+      </div>` : ""}
 
-      ${isNew ? `
+      ${!simple && isNew ? `
       <div class="recurring-toggle-row">
         <label class="recurring-toggle-label">
           <input type="checkbox" id="tf-rec-on" />
@@ -3233,9 +3245,11 @@ function openTaskModal(id, modalOpts = {}) {
     if (items.length) items[items.length - 1].focus();
   }
 
-  renderMstList();
-  $("mst-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } });
-  $("mst-add-btn").addEventListener("click", addSubtask);
+  if (!simple) {
+    renderMstList();
+    $("mst-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } });
+    $("mst-add-btn").addEventListener("click", addSubtask);
+  }
 
   /* ── cat1 ↔ cat2 연동 ────────────────────────────── */
   const cat1Sel    = $("tf-cat1");
@@ -3290,7 +3304,7 @@ function openTaskModal(id, modalOpts = {}) {
   });
 
   /* ── 반복 토글 ───────────────────────────────────── */
-  if (isNew) {
+  if (!simple && isNew) {
     $("tf-rec-on").addEventListener("change", (e) => {
       $("tf-rec-fields").classList.toggle("hidden", !e.target.checked);
     });
@@ -3316,18 +3330,20 @@ function openTaskModal(id, modalOpts = {}) {
     const title = cat2Val || cat1Val;
     if (!title) { alert("카테고리①을 선택하거나 직접 입력하세요."); return; }
 
-    // 세부업무 text 필드 동기화 (input blur 전에 저장됐을 수 있으므로)
-    $("mst-list").querySelectorAll(".mst-text-input").forEach((inp) => {
-      const idx = +inp.dataset.idx;
-      if (subtasks[idx]) subtasks[idx].text = inp.value;
-    });
-    const validSubs = subtasks.filter((s) => s.text.trim());
-
-    // 전체 상태: 세부업무 기준 자동 집계
+    let validSubs = [];
     let taskStatus = "in_progress";
-    if (validSubs.length > 0) {
-      if (validSubs.every((s) => s.status === "done")) taskStatus = "done";
-      else if (validSubs.every((s) => s.status === "waiting")) taskStatus = "waiting";
+    if (!simple) {
+      // 세부업무 text 필드 동기화 (input blur 전에 저장됐을 수 있으므로)
+      $("mst-list").querySelectorAll(".mst-text-input").forEach((inp) => {
+        const idx = +inp.dataset.idx;
+        if (subtasks[idx]) subtasks[idx].text = inp.value;
+      });
+      validSubs = subtasks.filter((s) => s.text.trim());
+      // 전체 상태: 세부업무 기준 자동 집계
+      if (validSubs.length > 0) {
+        if (validSubs.every((s) => s.status === "done")) taskStatus = "done";
+        else if (validSubs.every((s) => s.status === "waiting")) taskStatus = "waiting";
+      }
     }
 
     const cycleVal    = $("tf-cycle")?.value || "";
@@ -3338,7 +3354,7 @@ function openTaskModal(id, modalOpts = {}) {
       category:  cat2Val,
       status:    taskStatus,
       due_date:  null,
-      note:      $("tf-note").value.trim(),
+      note:      simple ? "" : ($("tf-note")?.value.trim() || ""),
       subtasks:  validSubs,
       cycle:     cycleVal,
       cycle_day: cycleDayVal,
@@ -3349,7 +3365,7 @@ function openTaskModal(id, modalOpts = {}) {
         const res = await api("POST", "/api/tasks", createBody);
         S.tasks.unshift(res.task);
         // 반복 등록 체크됐으면 recurring도 함께 생성
-        const recOn = $("tf-rec-on")?.checked;
+        const recOn = !simple && $("tf-rec-on")?.checked;
         if (recOn) {
           const recType = $("tf-rec-type").value;
           const recDay  = recType === "weekly"
@@ -3652,7 +3668,7 @@ function wireEvents() {
     await renderMyTasks();
   });
   $("addRecurringBtn")?.addEventListener("click", () => openRecurringModal(null));
-  $("addTaskBtn").addEventListener("click", () => openTaskModal(null));
+  $("addTaskBtn").addEventListener("click", () => openTaskModal(null, { simple: true }));
   $("headerBrand")?.addEventListener("click", () => switchTab("dashboard"));
 
   $("teamRefreshBtn").addEventListener("click", () => renderTeam());
