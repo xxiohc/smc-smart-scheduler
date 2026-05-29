@@ -182,13 +182,13 @@ input, select, textarea { outline: none; }
 .header-inner {
   max-width: 1280px; margin: 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  height: 64px; padding: 0 24px;
+  height: 80px; padding: 0 32px;
 }
-.header-brand { display: flex; align-items: center; gap: 14px; }
-.header-logo { width: 110px; height: 32px; object-fit: contain; }
-.header-text { display: flex; flex-direction: column; }
-.header-sub { font-size: 10px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.header-title { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
+.header-brand { display: flex; align-items: center; gap: 16px; }
+.header-logo { width: 140px; height: 40px; object-fit: contain; }
+.header-text { display: flex; flex-direction: column; justify-content: center; }
+.header-sub { display: block; font-size: 10px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; line-height: 1; }
+.header-title { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .header-user {
   font-size: 13px; font-weight: 600; color: var(--ink);
@@ -199,20 +199,20 @@ input, select, textarea { outline: none; }
 /* ── Tab navigation ──────────────────────────────────────── */
 .tab-nav {
   background: #fff; border-bottom: 1px solid var(--line);
-  position: sticky; top: 64px; z-index: 40;
+  position: sticky; top: 80px; z-index: 40;
 }
 .tab-nav-inner {
   max-width: 1280px; margin: 0 auto; padding: 0 24px;
   display: flex; gap: 4px;
 }
 .tab-btn {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 7px;
   background: none; border: none; border-bottom: 2.5px solid transparent;
-  padding: 12px 14px 10px; font-size: 14px; font-weight: 500;
+  padding: 14px 16px 12px; font-size: 15px; font-weight: 500;
   color: var(--muted); cursor: pointer; transition: color 0.15s;
   margin-bottom: -1px;
 }
-.tab-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.tab-btn svg { width: 17px; height: 17px; flex-shrink: 0; }
 .tab-btn:hover { color: var(--ink); }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
 
@@ -1473,23 +1473,23 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   .shell { padding: 20px 16px 48px; }
 
   /* Header */
-  .header-inner { padding: 0 16px; height: 56px; }
-  .header-logo { width: 88px; height: 24px; }
+  .header-inner { padding: 0 16px; height: 64px; }
+  .header-logo { width: 110px; height: 32px; }
   .header-sub { display: none; }
-  .header-title { font-size: 14px; }
+  .header-title { font-size: 17px; }
   .header-user { font-size: 12px; padding: 4px 10px; }
   #logoutBtn { font-size: 12px; padding: 6px 10px; }
 
   /* Tab nav — 가로 스크롤 */
-  .tab-nav { top: 56px; }
+  .tab-nav { top: 64px; }
   .tab-nav-inner {
     padding: 0 8px; gap: 0;
     overflow-x: auto; scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
   .tab-nav-inner::-webkit-scrollbar { display: none; }
-  .tab-btn { padding: 10px 10px 8px; font-size: 12px; gap: 4px; flex-shrink: 0; }
-  .tab-btn svg { width: 14px; height: 14px; }
+  .tab-btn { padding: 11px 12px 9px; font-size: 13px; gap: 4px; flex-shrink: 0; }
+  .tab-btn svg { width: 15px; height: 15px; }
 
   /* Page elements */
   .page-title { font-size: 18px; }
@@ -1530,15 +1530,15 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   .shell { padding: 16px 12px 40px; }
 
   /* Header — 텍스트 영역 숨기고 로고·유저만 */
-  .header-inner { padding: 0 12px; height: 52px; }
+  .header-inner { padding: 0 12px; height: 56px; }
   .header-text { display: none; }
   .header-right { gap: 8px; }
   .header-user { font-size: 11px; padding: 4px 8px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #logoutBtn { font-size: 11px; padding: 5px 9px; }
 
   /* Tab nav */
-  .tab-nav { top: 52px; }
-  .tab-btn { padding: 8px 8px 6px; font-size: 11px; gap: 3px; }
+  .tab-nav { top: 56px; }
+  .tab-btn { padding: 9px 9px 7px; font-size: 11px; gap: 3px; }
 
   /* Page */
   .page-title { font-size: 16px; }
