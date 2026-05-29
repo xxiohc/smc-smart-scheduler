@@ -459,6 +459,32 @@ function _dayInWeek(day, ws, we) {
   return false;
 }
 
+/* 루틴 업무의 실제 처리 예정일 계산 (주기일 + 휴일 조정) */
+function calcRoutineDueDate(task, year, week) {
+  if (!task.cycle_day) return "";
+  const ws = weekStart(year, week);
+  const we = weekEnd(year, week);
+
+  // 이번 주 안에서 cycle_day와 일치하는 날 찾기
+  let target = null;
+  for (let d = new Date(ws); d <= we; d = new Date(d.getTime() + 86400000)) {
+    if (d.getDate() === task.cycle_day) { target = new Date(d); break; }
+  }
+  if (!target) return "";
+
+  // 휴일(토·일) 조정
+  const adj = task.holiday_adjust || "none";
+  if (adj !== "none") {
+    const dow = target.getDay(); // 0=일, 6=토
+    if (dow === 0) { // 일요일
+      target = new Date(target.getTime() + (adj === "after" ? 1 : -2) * 86400000);
+    } else if (dow === 6) { // 토요일
+      target = new Date(target.getTime() + (adj === "after" ? 2 : -1) * 86400000);
+    }
+  }
+  return dateKey(target);
+}
+
 function renderRoutineDueBanner(year, week) {
   const banner = $("routineDueBanner");
   if (!banner) return;
@@ -466,7 +492,6 @@ function renderRoutineDueBanner(year, week) {
   const due = getRoutineTasksDueThisWeek(year, week);
   if (!due.length) { banner.classList.add("hidden"); return; }
 
-  const we = weekEnd(year, week);
   banner.classList.remove("hidden");
   banner.innerHTML = `
     <div class="routine-due-banner-head">
@@ -479,12 +504,24 @@ function renderRoutineDueBanner(year, week) {
       ${due.map((t) => {
         const cat1 = t.cat1 ? `<span style="font-weight:800">${esc(t.cat1)}</span> › ` : "";
         const cat2 = esc(t.category || t.title || "");
-        const dayStr = t.cycle_day
-          ? `${t.cycle} ${t.cycle_day}일`
-          : t.cycle;
-        return `<div class="routine-due-item" data-id="${t.id}">
+        const dueDate = calcRoutineDueDate(t, year, week);
+        // 날짜 표시: 원래 주기일 + 조정된 실제 날짜
+        let dayStr = t.cycle_day ? `${t.cycle} ${t.cycle_day}일` : t.cycle;
+        let dateTag = "";
+        if (dueDate) {
+          const d = new Date(dueDate);
+          const fmted = `${d.getMonth()+1}/${d.getDate()}`;
+          const origDay = t.cycle_day;
+          const adjDay  = d.getDate();
+          if (t.holiday_adjust !== "none" && origDay !== adjDay) {
+            dateTag = `<span class="routine-due-adj-date">${fmted} (조정됨)</span>`;
+          } else {
+            dateTag = `<span class="routine-due-adj-date">${fmted}</span>`;
+          }
+        }
+        return `<div class="routine-due-item" data-id="${t.id}" data-date="${dueDate}">
           <span class="routine-due-item-label">${cat1}${cat2}</span>
-          <span class="routine-due-item-day">${dayStr}</span>
+          <span class="routine-due-item-day">${dayStr}${dateTag}</span>
           <button class="routine-due-item-add" data-id="${t.id}">+ 이번 주 추가</button>
         </div>`;
       }).join("")}
@@ -498,9 +535,12 @@ function renderRoutineDueBanner(year, week) {
       if (btn.classList.contains("added")) return;
       const task = S.tasks.find((t) => t.id === btn.dataset.id);
       if (!task) return;
+      const itemEl = btn.closest(".routine-due-item");
+      const autoDate = itemEl?.dataset.date || "";
       S.weekTasks.push({
         text: task.category || task.title,
-        status: "in_progress", date: "",
+        status: "in_progress",
+        date: autoDate,          // 주기일 (휴일 조정 포함) 자동 세팅
         cat1: task.cat1 || "", cat2: task.category || "",
       });
       renderWeekTasksList();

@@ -323,6 +323,11 @@ input, select, textarea { outline: none; }
 }
 .routine-due-item-add:hover { background: #d97706; }
 .routine-due-item-add.added { background: var(--good); cursor: default; }
+.routine-due-adj-date {
+  display: inline-block; margin-left: 6px;
+  font-size: 12px; font-weight: 700; color: #d97706;
+  background: #fef9c3; border-radius: 5px; padding: 1px 6px;
+}
 
 /* ── Week report card (단일 리스트) ──────────────────────── */
 .week-report-card {
