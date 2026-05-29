@@ -499,16 +499,21 @@ function renderRoutineDueBanner(year, week) {
   const due = getRoutineTasksDueThisWeek(year, week);
   if (!due.length) { banner.classList.add("hidden"); return; }
 
+  // 이미 이번 주 업무에 추가된 항목 제외
+  const addedTexts = new Set((S.weekTasks || []).map((w) => w.text));
+  const pending = due.filter((t) => !addedTexts.has(t.cat2 || t.category || t.title || ""));
+  if (!pending.length) { banner.classList.add("hidden"); return; }
+
   banner.classList.remove("hidden");
   banner.innerHTML = `
     <div class="routine-due-banner-head">
       <div class="routine-due-banner-title">
-        🔔 이번 주에 처리해야 할 루틴 업무 ${due.length}건
+        🔔 이번 주에 처리해야 할 루틴 업무 ${pending.length}건
       </div>
       <button class="routine-due-banner-close" id="routineBannerClose">✕</button>
     </div>
     <div class="routine-due-items">
-      ${due.map((t) => {
+      ${pending.map((t) => {
         const cat1 = t.cat1 ? `<span style="font-weight:800">${esc(t.cat1)}</span> › ` : "";
         const cat2 = esc(t.cat2 || t.category || t.title || "");
         const dueDate = calcRoutineDueDate(t, year, week);
@@ -770,6 +775,27 @@ function createWeekTaskItem(item, idx) {
           }
         });
 
+        // 세부업무 날짜 입력
+        const dateIn = document.createElement("input");
+        dateIn.type = "date";
+        dateIn.className = "wts-date";
+        dateIn.value = s.due_date || "";
+        dateIn.title = "마감일";
+        // 지난 날짜 + 미완료면 빨간색 표시
+        const applyDateColor = (val, st) => {
+          if (val && st !== "done" && val < dateKey(new Date())) {
+            dateIn.classList.add("overdue");
+          } else {
+            dateIn.classList.remove("overdue");
+          }
+        };
+        applyDateColor(s.due_date || "", sStatus);
+        dateIn.addEventListener("change", (e) => {
+          S.weekTasks[idx].subtasks[si].due_date = e.target.value;
+          const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
+          applyDateColor(e.target.value, cur);
+        });
+
         const stBtn = document.createElement("button");
         stBtn.className = `sub-status-badge ${cls}`;
         stBtn.textContent = lbl;
@@ -793,6 +819,7 @@ function createWeekTaskItem(item, idx) {
 
         row.appendChild(dot);
         row.appendChild(inp);
+        row.appendChild(dateIn);
         row.appendChild(stBtn);
         row.appendChild(delBtn);
         subList.appendChild(row);
@@ -1984,7 +2011,7 @@ async function doArchiveSearch() {
         head.addEventListener("click", () => body.classList.toggle("hidden"));
 
         reps.forEach((r) => {
-          const rTasks = getReportTasks(r).filter(i => !doneOnly || (_WEEK_LEGACY[i.status] || i.status) === "done");
+          const rTasks = getReportTasks(r).filter(i => !doneOnly || (_WEEK_LEGACY[i.status] || i.status) === "done" || (doneOnly && !!i.date));
           if (doneOnly && rTasks.length === 0) return;
           const row = document.createElement("div");
           row.className = "archive-member-row";
@@ -2086,7 +2113,7 @@ async function doArchiveSearch() {
 
         partMembersFiltered.forEach((m) => {
           const allTasks = memberTaskMap[m.id].tasks;
-          const filteredTasks = doneOnly ? allTasks.filter(i => (_WEEK_LEGACY[i.status] || i.status) === "done") : allTasks;
+          const filteredTasks = doneOnly ? allTasks.filter(i => (_WEEK_LEGACY[i.status] || i.status) === "done" || !!i.date) : allTasks;
           if (filteredTasks.length === 0) return;
           const sorted = [...filteredTasks].sort((a, b) => {
             // 첫 번째 주차 기준 정렬
@@ -3438,6 +3465,48 @@ async function renderMyTasks() {
     return;
   }
 
+  // ── 선택 삭제 툴바 ──────────────────────────────────────────
+  let selectMode = false;
+  const selBar = document.createElement("div");
+  selBar.className = "tasks-sel-bar";
+  selBar.innerHTML = `
+    <button class="btn-ghost small" id="toggleSelectMode">☐ 선택 삭제</button>
+    <span class="tasks-sel-count hidden" id="selCount"></span>
+    <button class="btn-danger small hidden" id="deleteSelected">선택 삭제</button>
+  `;
+  container.appendChild(selBar);
+
+  const toggleSelBtn = selBar.querySelector("#toggleSelectMode");
+  const selCountEl   = selBar.querySelector("#selCount");
+  const delSelBtn    = selBar.querySelector("#deleteSelected");
+
+  function updateSelUI() {
+    const checked = container.querySelectorAll(".task-sel-cb:checked");
+    selCountEl.textContent = `${checked.length}건 선택됨`;
+    selCountEl.classList.toggle("hidden", !selectMode);
+    delSelBtn.classList.toggle("hidden", !selectMode || checked.length === 0);
+    container.classList.toggle("tasks-select-mode", selectMode);
+    toggleSelBtn.textContent = selectMode ? "✕ 취소" : "☐ 선택 삭제";
+    toggleSelBtn.classList.toggle("active", selectMode);
+  }
+
+  toggleSelBtn.addEventListener("click", () => {
+    selectMode = !selectMode;
+    updateSelUI();
+  });
+
+  delSelBtn.addEventListener("click", async () => {
+    const checked = [...container.querySelectorAll(".task-sel-cb:checked")];
+    if (!checked.length) return;
+    if (!confirm(`선택한 업무 ${checked.length}건을 삭제하시겠습니까?`)) return;
+    const ids = checked.map((cb) => cb.dataset.id);
+    for (const id of ids) {
+      try { await api("DELETE", `/api/tasks/${id}`); } catch {}
+    }
+    S.tasks = S.tasks.filter((t) => !ids.includes(t.id));
+    renderMyTasks();
+  });
+
   // ── 루틴 업무 flat 리스트 (cat1 → cat2 → title 순) ──────────
   const activeTasks = S.tasks.filter((t) => t.status !== "done");
   const cat1Order = getPartCat1List(S.member?.part || "");
@@ -3450,7 +3519,15 @@ async function renderMyTasks() {
   });
   activeTasks.forEach((task, i) => {
     const tw = isTaskThisWeek(task, year, week);
-    container.appendChild(buildTaskCard(task, { num: i + 1, thisWeek: tw }));
+    const card = buildTaskCard(task, { num: i + 1, thisWeek: tw });
+    // 선택용 체크박스 (select mode 시만 보임)
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "task-sel-cb";
+    cb.dataset.id = task.id;
+    cb.addEventListener("change", updateSelUI);
+    card.prepend(cb);
+    container.appendChild(card);
   });
 
   // ── 완료된 업무 (접기/펼치기) ──────────────────────────────────
@@ -4108,16 +4185,23 @@ function openImportWeekModal(taskItems, title) {
   const card = $("modalCard");
 
   const itemsHtml = taskItems.map((t, i) => {
-    const label = t.text || t.title || "";
-    const sub = [
-      t.status ? (TASK_STATUS_LABELS[t.status] || t.status) : "",
-      t.date ? `마감 ${t.date.slice(5).replace("-", "/")}` : (t.due_date ? `마감 ${t.due_date.slice(5).replace("-", "/")}` : ""),
-    ].filter(Boolean).join(" · ");
+    const c1 = t.cat1 || "";
+    const c2 = t.cat2 || t.category || "";
+    const catLabel = c1 && c2 ? `${c1} › ${c2}` : (c1 || c2);
+    const mainText = t.text || t.title || "";
+    const showMain = mainText && mainText !== c2 && mainText !== c1;
+    const statusLbl = { in_progress: "진행중", done: "완료", hold: "보류" }[t.status] || "";
+    const dateStr = t.date ? t.date.slice(5).replace("-", "/") : (t.due_date ? t.due_date.slice(5).replace("-", "/") : "");
+    const sub = [statusLbl, dateStr ? `마감 ${dateStr}` : ""].filter(Boolean).join(" · ");
+    const subs = (t.subtasks || []).filter((s) => s.text?.trim());
     return `
       <label class="import-task-item selected" data-idx="${i}">
         <input type="checkbox" value="${i}" checked />
-        <div>
-          <div class="import-task-text">${esc(label)}</div>
+        <div style="min-width:0;flex:1">
+          ${catLabel ? `<div class="import-task-cat">${esc(catLabel)}</div>` : ""}
+          ${showMain ? `<div class="import-task-text">${esc(mainText)}</div>` : ""}
+          ${!catLabel && !showMain ? `<div class="import-task-text">${esc(mainText)}</div>` : ""}
+          ${subs.length ? `<div class="import-task-subs">${subs.map((s) => `<span>· ${esc(s.text)}</span>`).join("")}</div>` : ""}
           ${sub ? `<div class="import-task-sub">${esc(sub)}</div>` : ""}
         </div>
       </label>`;
@@ -4172,6 +4256,11 @@ function openImportWeekModal(taskItems, title) {
         text: t.text || t.title || "",
         status: t.status === "done" ? "done" : "in_progress",
         date: t.date || t.due_date || "",
+        cat1: t.cat1 || "",
+        cat2: t.cat2 || t.category || "",
+        subtasks: (t.subtasks || []).filter((s) => s.text?.trim()).map((s) => ({
+          ...s, status: s.status === "done" ? "done" : "in_progress", done: s.done || s.status === "done",
+        })),
       });
     });
     renderWeekTasksList();
