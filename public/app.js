@@ -882,6 +882,12 @@ function createWeekTaskItem(item, idx) {
         delBtn.className = "wts-sub-del";
         delBtn.textContent = "✕";
         delBtn.addEventListener("click", () => {
+          if (S.reportSubmitted) {
+            if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
+            S.reportSubmitted = false;
+            const g = document.getElementById("weekSubmitGuard");
+            if (g) g.remove();
+          }
           S.weekTasks[idx].subtasks.splice(si, 1);
           rebuildSubs();
         });
@@ -966,6 +972,12 @@ function createWeekTaskItem(item, idx) {
   del.className = "btn-danger";
   del.textContent = "✕";
   del.addEventListener("click", () => {
+    if (S.reportSubmitted) {
+      if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
+      S.reportSubmitted = false;
+      const g = document.getElementById("weekSubmitGuard");
+      if (g) g.remove();
+    }
     S.weekTasks.splice(idx, 1);
     renderWeekTasksList();
   });
