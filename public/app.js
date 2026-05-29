@@ -1398,17 +1398,24 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
           evEl.textContent = `🎂 ${name} 생일${lunarTag}`;
           evEl.title = `🎂 ${name}님 생일${lunarTag}${age ? ` · 만 ${age}세` : ""}`;
         } else {
-          evEl.textContent = `${icon} ${name} ${typeLabel(e.type)}`;
+          // 텍스트 span + 리사이즈 핸들 구조
+          const txtSpan = document.createElement("span");
+          txtSpan.className = "evt-text";
+          txtSpan.textContent = `${icon} ${name} ${typeLabel(e.type)}`;
           evEl.title = `${name} · ${typeLabel(e.type)}${e.note ? " · " + e.note : ""}`;
+          evEl.appendChild(txtSpan);
         }
 
-        // ── 드래그앤드롭: 생일 제외 실제 이벤트만 이동 가능 ──
+        // ── 드래그앤드롭: 생일 제외 실제 이벤트만 이동/리사이즈 가능 ──
         const canDrag = !e.isBirthday && e.type !== "birthday";
         if (canDrag) {
           evEl.draggable = true;
           evEl.classList.add("draggable-event");
+
+          // 이동 드래그 (이벤트 본체)
           evEl.addEventListener("dragstart", (evt) => {
-            _calDrag = { id: e.id, startDate: e.start_date, endDate: e.end_date };
+            if (evt.target.classList.contains("cal-resize-handle")) return;
+            _calDrag = { id: e.id, startDate: e.start_date, endDate: e.end_date, mode: "move" };
             evt.dataTransfer.effectAllowed = "move";
             evt.dataTransfer.setData("text/plain", e.id);
             evEl.classList.add("dragging");
@@ -1417,6 +1424,25 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
           evEl.addEventListener("dragend", () => {
             evEl.classList.remove("dragging");
           });
+
+          // 리사이즈 핸들 (오른쪽 끝 — 마지막 날 칸에만 표시)
+          if (key === e.end_date) {
+            const resizeHandle = document.createElement("span");
+            resizeHandle.className = "cal-resize-handle";
+            resizeHandle.draggable = true;
+            resizeHandle.title = "드래그하여 기간 연장/단축";
+            resizeHandle.addEventListener("dragstart", (evt) => {
+              evt.stopPropagation();
+              _calDrag = { id: e.id, startDate: e.start_date, endDate: e.end_date, mode: "resize" };
+              evt.dataTransfer.effectAllowed = "move";
+              evt.dataTransfer.setData("text/plain", e.id);
+              resizeHandle.classList.add("resizing");
+            });
+            resizeHandle.addEventListener("dragend", () => {
+              resizeHandle.classList.remove("resizing");
+            });
+            evEl.appendChild(resizeHandle);
+          }
         }
 
         evtsEl.appendChild(evEl);
@@ -1433,40 +1459,53 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
       // ── 드롭 대상 ──
       cell.addEventListener("dragover", (evt) => {
         if (!_calDrag) return;
+        // 리사이즈: 시작일 이전 칸은 drop 불가
+        if (_calDrag.mode === "resize" && key < _calDrag.startDate) return;
         evt.preventDefault();
         evt.dataTransfer.dropEffect = "move";
-        cell.classList.add("drag-over");
+        cell.classList.add(_calDrag.mode === "resize" ? "drag-over-resize" : "drag-over");
       });
       cell.addEventListener("dragleave", (evt) => {
         if (!evt.currentTarget.contains(evt.relatedTarget)) {
           cell.classList.remove("drag-over");
+          cell.classList.remove("drag-over-resize");
         }
       });
       cell.addEventListener("drop", async (evt) => {
         evt.preventDefault();
         cell.classList.remove("drag-over");
+        cell.classList.remove("drag-over-resize");
         if (!_calDrag) return;
-        const { id, startDate, endDate } = _calDrag;
+        const { id, startDate, endDate, mode } = _calDrag;
         _calDrag = null;
-        if (startDate === key) return; // 같은 날짜면 무시
 
-        const origStartMs = new Date(startDate + "T00:00:00").getTime();
-        const origEndMs   = new Date(endDate   + "T00:00:00").getTime();
-        const duration    = origEndMs - origStartMs;
-        const newStartMs  = new Date(key + "T00:00:00").getTime();
-        const newEndMs    = newStartMs + duration;
-        const newStart    = dateKey(new Date(newStartMs));
-        const newEnd      = dateKey(new Date(newEndMs));
+        let newStart, newEnd;
+        if (mode === "resize") {
+          if (key < startDate) return; // 시작일 이전은 무시
+          if (key === endDate) return;  // 변화 없음
+          newStart = startDate;
+          newEnd   = key;
+        } else {
+          if (key === startDate) return; // 같은 날짜면 무시
+          const duration   = new Date(endDate + "T00:00:00") - new Date(startDate + "T00:00:00");
+          const newStartMs = new Date(key + "T00:00:00").getTime();
+          newStart = key;
+          newEnd   = dateKey(new Date(newStartMs + duration));
+        }
 
         _calDropDone = true;
         setTimeout(() => { _calDropDone = false; }, 150);
 
         try {
           await api("PUT", `/api/events/${id}`, { start_date: newStart, end_date: newEnd });
-          showToast(`✓ ${newStart.slice(5).replace("-","/")}(으)로 이동됐습니다.`);
+          const days = Math.round((new Date(newEnd + "T00:00:00") - new Date(newStart + "T00:00:00")) / 86400000) + 1;
+          const msg = mode === "resize"
+            ? `✓ ${newStart.slice(5).replace("-","/")} ~ ${newEnd.slice(5).replace("-","/")} (${days}일)`
+            : `✓ ${newStart.slice(5).replace("-","/")}(으)로 이동됐습니다.`;
+          showToast(msg);
           renderCalendar();
         } catch (e) {
-          showToast("이동 실패: " + e.message, "error");
+          showToast("변경 실패: " + e.message, "error");
         }
       });
 

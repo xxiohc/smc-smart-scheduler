@@ -713,12 +713,37 @@ input, select, textarea { outline: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;
 }
-.cal-event.draggable-event { cursor: grab; user-select: none; }
+.cal-event.draggable-event {
+  cursor: grab; user-select: none;
+  display: flex; align-items: center;
+  padding-right: 2px;
+}
 .cal-event.draggable-event:active { cursor: grabbing; }
 .cal-event.dragging { opacity: 0.35; outline: 2px dashed currentColor; }
+.evt-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 리사이즈 핸들 */
+.cal-resize-handle {
+  flex-shrink: 0;
+  width: 10px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: col-resize;
+  opacity: 0.25;
+  font-size: 9px; line-height: 1;
+  border-radius: 0 3px 3px 0;
+  transition: opacity 0.12s;
+}
+.cal-resize-handle::after { content: "⟫"; }
+.cal-event.draggable-event:hover .cal-resize-handle { opacity: 0.75; }
+.cal-resize-handle.resizing { opacity: 1; }
+/* 드롭 하이라이트 */
 .cal-cell.drag-over {
   background: var(--primary-soft, #e8f0fe) !important;
   outline: 2px dashed var(--primary);
+  outline-offset: -3px;
+}
+.cal-cell.drag-over-resize {
+  background: #e8f5e9 !important;
+  outline: 2px dashed #2e7d32;
   outline-offset: -3px;
 }
 .cal-event.vacation { background: var(--yellow-soft); color: #b87000; }
