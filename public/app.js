@@ -2012,6 +2012,26 @@ function renderArchive() {
       yearSel.appendChild(o);
     }
   }
+  // 일반 팀원: 파트·멤버 필터 숨기고 본인 이름 표시
+  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
+  $("archivePart").classList.toggle("hidden", !isPrivileged);
+  $("archiveMember").classList.toggle("hidden", !isPrivileged);
+
+  if (!isPrivileged) {
+    // 본인 이름 라벨만 표시
+    let myLbl = document.getElementById("archiveMyLabel");
+    if (!myLbl) {
+      myLbl = document.createElement("span");
+      myLbl.id = "archiveMyLabel";
+      myLbl.className = "archive-my-label";
+      $("archivePart").parentNode.insertBefore(myLbl, $("archivePart"));
+    }
+    myLbl.textContent = `👤 ${S.member.name} (본인 업무만 조회)`;
+  } else {
+    const myLbl = document.getElementById("archiveMyLabel");
+    if (myLbl) myLbl.remove();
+  }
+
   // 파트 목록 (항상 최신 멤버 기준으로 갱신)
   const partSel = $("archivePart");
   partSel.innerHTML = '<option value="">전체 파트</option>';
@@ -2100,8 +2120,11 @@ function updateArchiveSelectors() {
 async function doArchiveSearch() {
   const view = $("archiveView").value;
   const year = Number($("archiveYear").value);
-  const selectedPart = $("archivePart").value;   // 파트 필터 (외부 변수명 충돌 방지)
-  const memberId = $("archiveMember")?.value || "";
+
+  // 일반 팀원은 본인 데이터만 조회
+  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
+  const selectedPart = isPrivileged ? ($("archivePart").value) : "";
+  const memberId     = isPrivileged ? ($("archiveMember")?.value || "") : S.member.id;
   const doneOnly = $("archiveDoneOnly")?.checked || false;
   const result = $("archiveResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
