@@ -76,7 +76,8 @@ function upsertBirthdayEvent(db, memberId, birthday, birthdayType) {
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const PUBLIC = join(ROOT, "public");
-const DATA_DIR = join(ROOT, "data");
+// Vercel 프로덕션 환경에서는 /tmp에 저장 (파일시스템이 read-only이므로)
+const DATA_DIR = process.env.VERCEL ? "/tmp" : join(ROOT, "data");
 const DB_FILE = join(DATA_DIR, "db.json");
 const PORT = Number(process.env.PORT || 3100);
 
