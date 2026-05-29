@@ -199,6 +199,10 @@ async function _ghSaveDb(db) {
   if (res.ok) {
     const m = await res.json();
     _gh.cacheSha = m.content?.sha || _gh.cacheSha;
+  } else {
+    // 저장 실패 시 에러를 상위로 전파 (조용히 무시하지 않음)
+    const body = await res.text().catch(() => "");
+    throw new Error(`GitHub DB 저장 실패 (${res.status}): ${body.slice(0, 120)}`);
   }
 }
 

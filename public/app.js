@@ -1422,9 +1422,10 @@ function buildEventList(events, start, end) {
       if (!confirm("이 일정을 삭제하시겠습니까?")) return;
       try {
         await api("DELETE", `/api/events/${btn.dataset.id}`);
+        showToast("일정이 삭제됐습니다.");
         renderCalendar();
       } catch (e) {
-        alert(e.message);
+        showToast("삭제 실패: " + e.message, "error");
       }
     });
   });
@@ -1605,9 +1606,10 @@ function openCalDateModal(dateStr, dayEvents) {
         if (!confirm("이 일정을 삭제하시겠습니까?")) return;
         try {
           await api("DELETE", `/api/events/${btn.dataset.delId}`);
+          showToast("일정이 삭제됐습니다.");
           closeCalDateModal();
           renderCalendar();
-        } catch (err) { alert(err.message); }
+        } catch (err) { showToast("삭제 실패: " + err.message, "error"); }
       });
     });
   }
