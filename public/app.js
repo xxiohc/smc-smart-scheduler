@@ -2728,7 +2728,10 @@ function buildTaskCard(task, opts = {}) {
   if (task.cycle) {
     const cyBadge = document.createElement("span");
     cyBadge.className = "routine-cycle-badge";
-    cyBadge.textContent = task.cycle + (task.cycle_day ? ` ${task.cycle_day}일` : "");
+    let cyText = task.cycle + (task.cycle_day ? ` ${task.cycle_day}일` : "");
+    if (task.holiday_adjust === "after")  cyText += " (휴일→다음)";
+    if (task.holiday_adjust === "before") cyText += " (휴일→이전)";
+    cyBadge.textContent = cyText;
     item.appendChild(cyBadge);
   }
 
@@ -3148,6 +3151,15 @@ function openTaskModal(id, modalOpts = {}) {
         </div>
       </div>
 
+      <div class="form-field">
+        <label>해당일 휴일인 경우 <span class="field-hint">(선택)</span></label>
+        <select id="tf-holiday-adjust">
+          <option value="none"   ${(task?.holiday_adjust||"none")==="none"   ?"selected":""}>조정 없음</option>
+          <option value="after"  ${task?.holiday_adjust==="after"  ?"selected":""}>다음 평일로</option>
+          <option value="before" ${task?.holiday_adjust==="before" ?"selected":""}>이전 평일로</option>
+        </select>
+      </div>
+
       ${!simple ? `
       <div class="form-field">
         <label>세부 업무 <span class="field-hint">(선택) 항목별 마감일·상태 설정 가능</span></label>
@@ -3370,18 +3382,20 @@ function openTaskModal(id, modalOpts = {}) {
       }
     }
 
-    const cycleVal    = $("tf-cycle")?.value || "";
-    const cycleDayVal = cycleVal && $("tf-cycle-day").value ? Number($("tf-cycle-day").value) : null;
+    const cycleVal       = $("tf-cycle")?.value || "";
+    const cycleDayVal    = cycleVal && $("tf-cycle-day").value ? Number($("tf-cycle-day").value) : null;
+    const holidayAdjust  = $("tf-holiday-adjust")?.value || "none";
     const body = {
       title,
-      cat1:      cat1Val,
-      category:  cat2Val,
-      status:    taskStatus,
-      due_date:  null,
-      note:      simple ? "" : ($("tf-note")?.value.trim() || ""),
-      subtasks:  validSubs,
-      cycle:     cycleVal,
-      cycle_day: cycleDayVal,
+      cat1:           cat1Val,
+      category:       cat2Val,
+      status:         taskStatus,
+      due_date:       null,
+      note:           simple ? "" : ($("tf-note")?.value.trim() || ""),
+      subtasks:       validSubs,
+      cycle:          cycleVal,
+      cycle_day:      cycleDayVal,
+      holiday_adjust: holidayAdjust,
     };
     try {
       if (isNew) {

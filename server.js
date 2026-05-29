@@ -617,7 +617,7 @@ async function handleCreateTask(req, res) {
   const memberId = getMemberFromRequest(req);
   if (!memberId) return err(res, "인증이 필요합니다.", 401);
   const body = await parseBody(req);
-  const { title, cat1 = "", category = "", status = "in_progress", priority = "normal", due_date = null, note = "", subtasks = [], target_member_id } = body;
+  const { title, cat1 = "", category = "", status = "in_progress", priority = "normal", due_date = null, note = "", subtasks = [], cycle = "", cycle_day = null, holiday_adjust = "none", target_member_id } = body;
   if (!title) return err(res, "업무명은 필수입니다.");
   const db = await loadDb();
   const caller = db.members.find((m) => m.id === memberId);
@@ -633,7 +633,7 @@ async function handleCreateTask(req, res) {
   }
   if (!db.tasks) db.tasks = [];
   const now = new Date().toISOString();
-  const task = { id: genId(), member_id: ownerId, cat1, title, category, status, priority, due_date, note, subtasks, created_at: now, updated_at: now };
+  const task = { id: genId(), member_id: ownerId, cat1, title, category, status, priority, due_date, note, subtasks, cycle, cycle_day, holiday_adjust, created_at: now, updated_at: now };
   db.tasks.push(task);
   await saveDb(db);
   json(res, { ok: true, task });
@@ -655,7 +655,7 @@ async function handleUpdateTask(req, res, id) {
   }
   if (!canEdit) return err(res, "권한이 없습니다.", 403);
   const body = await parseBody(req);
-  ["title","cat1","category","status","priority","due_date","note","subtasks"].forEach((k) => { if (body[k] !== undefined) task[k] = body[k]; });
+  ["title","cat1","category","status","priority","due_date","note","subtasks","cycle","cycle_day","holiday_adjust"].forEach((k) => { if (body[k] !== undefined) task[k] = body[k]; });
   task.updated_at = new Date().toISOString();
   await saveDb(db);
   json(res, { ok: true, task });
