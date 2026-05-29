@@ -369,12 +369,49 @@ input, select, textarea { outline: none; }
 .week-task-inner { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 
 /* ── 카테고리 헤더 ─ */
+.week-task-cat-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
 .week-task-cat {
+  flex: 1; min-width: 0;
   display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
 }
 .wtc-cat1 { font-size: 15px; font-weight: 800; color: var(--ink); }
 .wtc-sep  { font-size: 14px; color: var(--muted); padding: 0 2px; }
 .wtc-cat2 { font-size: 15px; font-weight: 700; color: var(--primary); }
+
+/* ── 인라인 컨트롤 (세부업무 없을 때 catRow 우측 표시) ─ */
+.wtc-inline-controls {
+  display: none; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.task-item.task-no-subs .wtc-inline-controls { display: flex; }
+.task-item.task-no-subs .task-date { display: none !important; }
+.task-item.task-no-subs .task-item-actions .task-status { display: none; }
+
+.wtc-inline-date {
+  width: 112px; border: 1px solid var(--line); border-radius: 4px;
+  padding: 3px 5px; font-size: 12px; color: var(--muted); background: var(--bg);
+}
+.wtc-inline-date:focus { outline: none; border-color: var(--primary); }
+
+.wtc-st-btn {
+  padding: 3px 9px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid var(--line-strong); border-radius: 20px;
+  background: none; color: var(--muted); cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+.wtc-st-btn:hover { border-color: var(--primary); color: var(--primary); }
+.wtc-st-btn.active.wtc-st-waiting     { border-color: var(--yellow);  color: var(--yellow);  background: var(--yellow-soft); }
+.wtc-st-btn.active.wtc-st-in_progress { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.wtc-st-btn.active.wtc-st-done        { border-color: var(--good);    color: var(--good);    background: var(--good-soft); }
+
+/* ── 제출완료 가드 배너 ─ */
+.week-submit-guard {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--primary-soft); border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 10px;
+}
+.wsg-icon { font-size: 16px; color: var(--primary); font-weight: 700; }
+.wsg-msg  { flex: 1; font-size: 13px; color: var(--primary-dark); }
 
 /* ── 텍스트 입력 ─ */
 .week-task-ta {
@@ -733,7 +770,7 @@ input, select, textarea { outline: none; }
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
 .cal-head-cell {
-  text-align: center; padding: 10px 4px; font-size: 12px;
+  text-align: center; padding: 10px 4px; font-size: 13px;
   font-weight: 700; color: var(--muted);
 }
 .cal-head-cell:first-child { color: var(--warn); }
@@ -743,7 +780,7 @@ input, select, textarea { outline: none; }
 .cal-week:last-child { border-bottom: none; }
 .cal-cell {
   min-height: 100px; padding: 6px; border-right: 1px solid var(--line);
-  font-size: 12px; vertical-align: top; transition: background 0.1s;
+  font-size: 13px; vertical-align: top; transition: background 0.1s;
 }
 .cal-cell:last-child { border-right: none; }
 .cal-cell:hover { background: var(--bg); }
@@ -752,12 +789,12 @@ input, select, textarea { outline: none; }
   background: var(--primary); color: #fff; border-radius: 50%;
   width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
 }
-.cal-date { font-size: 13px; font-weight: 600; margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.cal-date { font-size: 14px; font-weight: 600; margin-bottom: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 .cal-cell:nth-child(7n+1) .cal-date { color: var(--warn); }
 .cal-cell:nth-child(7n) .cal-date { color: var(--primary); }
 .cal-events { display: flex; flex-direction: column; gap: 2px; }
 .cal-event {
-  border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 600;
+  border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;
 }
@@ -1719,9 +1756,9 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   /* Calendar */
   .cal-month-label { font-size: 16px; min-width: 110px; }
   .cal-cell { min-height: 80px; padding: 4px 3px; }
-  .cal-head-cell { padding: 8px 2px; font-size: 11px; }
-  .cal-event { font-size: 10px; padding: 1px 4px; }
-  .cal-day-num { font-size: 12px; }
+  .cal-head-cell { padding: 8px 2px; font-size: 12px; }
+  .cal-event { font-size: 11px; padding: 1px 4px; }
+  .cal-day-num { font-size: 13px; }
 
   /* Team */
   .team-cards { grid-template-columns: 1fr 1fr; }
@@ -1772,9 +1809,9 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   /* Calendar cells */
   .cal-month-label { font-size: 14px; min-width: 90px; }
   .cal-cell { min-height: 62px; padding: 3px 2px; }
-  .cal-event { font-size: 9px; padding: 1px 3px; }
-  .cal-day-num { font-size: 11px; }
-  .cal-head-cell { padding: 6px 1px; font-size: 10px; }
+  .cal-event { font-size: 10px; padding: 1px 3px; }
+  .cal-day-num { font-size: 12px; }
+  .cal-head-cell { padding: 6px 1px; font-size: 11px; }
 
   /* Team — 1열 */
   .team-cards { grid-template-columns: 1fr; }

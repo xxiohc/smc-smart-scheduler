@@ -615,6 +615,28 @@ function renderBirthdayBanner() {
   badge.parentNode.insertBefore(banner, badge);
 }
 
+function renderWeekSubmitGuard() {
+  const prev = document.getElementById("weekSubmitGuard");
+  if (prev) prev.remove();
+  if (!S.reportSubmitted) return;
+  const guard = document.createElement("div");
+  guard.id = "weekSubmitGuard";
+  guard.className = "week-submit-guard";
+  guard.innerHTML = `
+    <span class="wsg-icon">✓</span>
+    <span class="wsg-msg">이미 제출된 업무입니다. 수정하려면 <strong>수정하기</strong>를 누르세요.</span>
+    <button class="btn-ghost small" id="wsgUnlockBtn">수정하기</button>
+  `;
+  guard.querySelector("#wsgUnlockBtn").addEventListener("click", () => {
+    if (confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) {
+      S.reportSubmitted = false;
+      guard.remove();
+    }
+  });
+  const container = $("weekTasksList");
+  if (container) container.parentNode.insertBefore(guard, container);
+}
+
 async function renderDashboard() {
   renderDashWeekHeader();
   renderBirthdayBanner();
@@ -623,6 +645,7 @@ async function renderDashboard() {
   try {
     const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
     const report = reports[0] || null;
+    S.reportSubmitted = report?.submitted || false;
     const badge = $("reportStatusBadge");
     if (report) {
       S.weekTasks = getReportTasks(report);
@@ -645,6 +668,7 @@ async function renderDashboard() {
       $("submitReport").textContent = "제출하기";
     }
     renderWeekTasksList();
+    renderWeekSubmitGuard();
     await renderMyTasks();
     renderMyFeedbacks();
   } catch (e) {
@@ -715,8 +739,13 @@ function createWeekTaskItem(item, idx) {
   const inner = document.createElement("div");
   inner.className = "week-task-inner";
 
+  let _updateLayout = () => {};  // 세부업무 토글 시 레이아웃 갱신 (하단에서 정의)
+  let catRow = null;
+
   // ── 카테고리 헤더 (cat1 › cat2) ──
   if (hasCat) {
+    catRow = document.createElement("div");
+    catRow.className = "week-task-cat-row";
     const catHeader = document.createElement("div");
     catHeader.className = "week-task-cat";
     const parts = [cat1, cat2].filter(Boolean);
@@ -725,7 +754,8 @@ function createWeekTaskItem(item, idx) {
         ? `<span class="wtc-cat1">${esc(p)}</span>`
         : `<span class="wtc-sep">›</span><span class="wtc-cat2">${esc(p)}</span>`
     ).join("");
-    inner.appendChild(catHeader);
+    catRow.appendChild(catHeader);
+    inner.appendChild(catRow);
   }
 
   // ── 텍스트 입력 (업무명 또는 자유 입력) ──
@@ -853,6 +883,7 @@ function createWeekTaskItem(item, idx) {
       if (inputs.length) inputs[inputs.length - 1].focus();
     });
     subsWrap.appendChild(addBtn);
+    _updateLayout();
   }
 
   rebuildSubs();
@@ -918,6 +949,58 @@ function createWeekTaskItem(item, idx) {
 
   actions.appendChild(statusBtn);
   actions.appendChild(del);
+
+  // ── 인라인 컨트롤 (hasCat + 세부업무 없을 때 catRow 우측에 표시) ──
+  if (hasCat && catRow) {
+    const inlineCtrl = document.createElement("div");
+    inlineCtrl.className = "wtc-inline-controls";
+
+    const iDate = document.createElement("input");
+    iDate.type = "date";
+    iDate.className = "wtc-inline-date";
+    iDate.value = item.date || "";
+    iDate.addEventListener("change", (e) => {
+      S.weekTasks[idx].date = e.target.value;
+      dateIn.value = e.target.value;
+      const cur = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
+      applyDateStyle(cur);
+      syncStatusBtnVisibility(cur, e.target.value);
+    });
+    inlineCtrl.appendChild(iDate);
+
+    [
+      { key: "waiting",     label: "계획" },
+      { key: "in_progress", label: "진행" },
+      { key: "done",        label: "완료" },
+    ].forEach(({ key, label }) => {
+      const btn = document.createElement("button");
+      btn.className = "wtc-st-btn wtc-st-" + key;
+      btn.dataset.stkey = key;
+      btn.textContent = label;
+      if (current === key) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        S.weekTasks[idx].status = key;
+        inlineCtrl.querySelectorAll(".wtc-st-btn").forEach(b =>
+          b.classList.toggle("active", b.dataset.stkey === key)
+        );
+        applyDateStyle(key);
+        statusBtn.className = `task-status ${key}`;
+        statusBtn.textContent = _WEEK_STATUS_LBL[key];
+        syncStatusBtnVisibility(key, S.weekTasks[idx].date || "");
+      });
+      inlineCtrl.appendChild(btn);
+    });
+
+    catRow.appendChild(inlineCtrl);
+  }
+
+  // ── 레이아웃 토글: 세부업무 없으면 인라인 모드 ──────────────────────
+  function updateLayout() {
+    const hasSubtasks = (S.weekTasks[idx].subtasks || []).length > 0;
+    div.classList.toggle("task-no-subs", hasCat && !hasSubtasks);
+  }
+  _updateLayout = updateLayout;
+  updateLayout();
 
   div.appendChild(inner);
   div.appendChild(actions);
@@ -4378,7 +4461,15 @@ function wireEvents() {
     S.dash = { year, week };
     renderDashboard();
   });
-  $("addWeekTaskBtn").addEventListener("click", () => openTaskModal(null, { addToWeek: true }));
+  $("addWeekTaskBtn").addEventListener("click", () => {
+    if (S.reportSubmitted) {
+      if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
+      S.reportSubmitted = false;
+      const g = document.getElementById("weekSubmitGuard");
+      if (g) g.remove();
+    }
+    openTaskModal(null, { addToWeek: true });
+  });
   $("sortTasksBtn")?.addEventListener("click", sortMyTasks);
   $("importWeekTasksBtn").addEventListener("click", () => openTaskImportModal());
   $("importPrevWeekBtn")?.addEventListener("click", importPrevWeekTasks);
