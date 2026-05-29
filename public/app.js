@@ -594,9 +594,20 @@ function createWeekTaskItem(item, idx) {
   dateIn.addEventListener("change", (e) => { S.weekTasks[idx].date = e.target.value; });
 
   function applyDateStyle(st) {
-    dateIn.title             = st === "done" ? "완료일" : "마감일";
-    dateIn.style.borderColor = st === "done" ? "var(--good)" : "";
-    dateIn.style.display     = st === "in_progress" ? "none" : "";
+    if (st === "done") {
+      dateIn.title             = "완료일";
+      dateIn.style.borderColor = "var(--good)";
+      dateIn.placeholder       = "완료일";
+    } else if (st === "in_progress") {
+      dateIn.title             = "목표기한";
+      dateIn.style.borderColor = "#f59e0b";
+      dateIn.placeholder       = "목표기한";
+    } else {
+      dateIn.title             = "마감일";
+      dateIn.style.borderColor = "";
+      dateIn.placeholder       = "마감일";
+    }
+    dateIn.style.display = "";
   }
   applyDateStyle(current);
   inner.appendChild(dateIn);
@@ -801,9 +812,13 @@ function showReportDetail(member, report, year, week, canEdit = false) {
       (groups[st] || groups.in_progress).push({ ...i, _st: st });
     });
     const renderGroup = (items) => items.map((i) => {
-      const dateStr = i.date
-        ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${i.date.slice(5).replace("-","/")}</span>`
-        : "";
+      let dateStr = "";
+      if (i.date) {
+        const d = i.date.slice(5).replace("-", "/");
+        if (i._st === "in_progress") dateStr = `<span style="font-size:11px;color:#f59e0b;margin-left:6px;font-weight:600">목표: ${d}</span>`;
+        else if (i._st === "done")   dateStr = `<span style="font-size:11px;color:var(--good);margin-left:6px">${d} 완료</span>`;
+        else                         dateStr = `<span style="font-size:11px;color:var(--muted);margin-left:6px">${d}</span>`;
+      }
       return `<div class="report-detail-item">
         <span class="detail-status ${i._st}">${sLabel[i._st]}</span>
         <span class="detail-text">${esc(i.text)}${dateStr}</span>
@@ -896,6 +911,11 @@ function showReportDetail(member, report, year, week, canEdit = false) {
           dateIn.className = "task-date";
           dateIn.value = t.date || "";
           dateIn.addEventListener("change", (e) => { editTasks[idx].date = e.target.value; });
+          (function applyEditDateStyle(s) {
+            if (s === "done")        { dateIn.title = "완료일"; dateIn.placeholder = "완료일"; dateIn.style.borderColor = "var(--good)"; }
+            else if (s === "in_progress") { dateIn.title = "목표기한"; dateIn.placeholder = "목표기한"; dateIn.style.borderColor = "#f59e0b"; }
+            else                    { dateIn.title = "마감일";  dateIn.placeholder = "마감일";  dateIn.style.borderColor = ""; }
+          })(st);
 
           inner.appendChild(ta);
           inner.appendChild(dateIn);
@@ -912,6 +932,9 @@ function showReportDetail(member, report, year, week, canEdit = false) {
             editTasks[idx].status = nxt;
             statusBtn.className = `task-status ${nxt}`;
             statusBtn.textContent = _WEEK_STATUS_LBL[nxt];
+            if (nxt === "done")        { dateIn.title = "완료일"; dateIn.placeholder = "완료일"; dateIn.style.borderColor = "var(--good)"; }
+            else if (nxt === "in_progress") { dateIn.title = "목표기한"; dateIn.placeholder = "목표기한"; dateIn.style.borderColor = "#f59e0b"; }
+            else                       { dateIn.title = "마감일";  dateIn.placeholder = "마감일";  dateIn.style.borderColor = ""; }
           });
 
           const del = document.createElement("button");
