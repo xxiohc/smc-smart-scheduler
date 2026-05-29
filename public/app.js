@@ -2807,41 +2807,12 @@ function buildTaskCard(task, opts = {}) {
     body.appendChild(meta);
   }
 
-  // 세부업무 (항상 펼쳐서 표시)
+  // 루틴 업무 목록: 세부업무가 있으면 카운트만 작게 표시 (목록은 주차별 업무현황에서 관리)
   if (subTotal > 0) {
-    const subWrap = document.createElement("div");
-    subWrap.className = "subtask-inline";
-    subs.forEach((s, i) => {
-      const sStatus = s.status || (s.done ? "done" : "in_progress");
-      const isOver  = s.due_date && s.due_date < today && sStatus !== "done";
-      const statusCls = { waiting: "sub-wait", in_progress: "sub-prog", done: "sub-done" }[sStatus] || "";
-      const statusLbl = { waiting: "대기", in_progress: "진행중", done: "완료" }[sStatus] || "";
-      const dateLbl   = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
-      const sRow = document.createElement("label");
-      sRow.className = "subtask-inline-item" + (s.done ? " done" : "");
-      sRow.innerHTML = `
-        <input type="checkbox" class="task-sub-cb" data-task="${task.id}" data-idx="${i}" ${s.done ? "checked" : ""} />
-        <span class="sub-text">${esc(s.text)}</span>
-        <span class="sub-status-badge ${statusCls}">${statusLbl}</span>
-        ${dateLbl ? `<span class="sub-date-badge${isOver ? " overdue" : ""}">${dateLbl}${isOver ? " ⚠" : ""}</span>` : ""}
-      `;
-      subWrap.appendChild(sRow);
-    });
-    subWrap.querySelectorAll(".task-sub-cb").forEach((cb) => {
-      cb.addEventListener("change", async () => {
-        const tIdx = S.tasks.findIndex((t) => t.id === cb.dataset.task);
-        if (tIdx < 0) return;
-        const newSubs = (S.tasks[tIdx].subtasks || []).map((s, idx) =>
-          idx === +cb.dataset.idx ? { ...s, done: cb.checked } : s
-        );
-        try {
-          await api("PUT", `/api/tasks/${cb.dataset.task}`, { subtasks: newSubs });
-          S.tasks[tIdx] = { ...S.tasks[tIdx], subtasks: newSubs };
-          cb.closest(".subtask-inline-item")?.classList.toggle("done", cb.checked);
-        } catch (e) { alert(e.message); }
-      });
-    });
-    body.appendChild(subWrap);
+    const subCount = document.createElement("span");
+    subCount.className = "routine-sub-count";
+    subCount.textContent = `세부업무 ${subTotal}건`;
+    body.appendChild(subCount);
   }
 
   // 액션
@@ -2966,7 +2937,7 @@ async function renderMyTasks() {
   const targetMember = isViewingOther ? S.members.find((m) => m.id === S.taskTargetMemberId) : null;
   const mytasksTitle = document.querySelector(".mytasks-title");
   if (mytasksTitle) {
-    mytasksTitle.textContent = targetMember ? `📋 ${targetMember.name}의 업무 목록` : "📋 내 업무 목록";
+    mytasksTitle.textContent = targetMember ? `📋 ${targetMember.name}의 루틴 업무 리스트` : "📋 내 루틴 업무 리스트";
   }
   // 반복추가 버튼: 타인 열람 시 숨김 (반복업무는 본인 전용)
   $("addRecurringBtn")?.classList.toggle("hidden", isViewingOther);
