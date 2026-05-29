@@ -1,13 +1,13 @@
 /* ── Design tokens (Toss-style) ──────────────────────────── */
 :root {
-  --bg: #f5f7fa;
+  --bg: #f2f4f8;
   --surface: #ffffff;
   --card: #ffffff;
-  --ink: #191f28;
-  --muted: #8b95a1;
-  --subtle: #6b7684;
-  --line: #edf0f3;
-  --line-strong: #e5e8eb;
+  --ink: #111827;
+  --muted: #6b7280;
+  --subtle: #374151;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
   --primary: #3182f6;
   --primary-dark: #1b64da;
   --primary-soft: #eef6ff;
@@ -26,8 +26,14 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { background: var(--bg); }
-body { margin: 0; background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+html { background: var(--bg); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-size: 15px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 h1,h2,h3,h4,p { margin: 0; }
 button, input, select, textarea { font: inherit; }
 input, select, textarea { outline: none; }
@@ -727,14 +733,14 @@ input, select, textarea { outline: none; }
 .arc-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
 /* cat breadcrumb */
 .arc-cats { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.arc-cat1 { font-size: 12px; font-weight: 700; color: var(--primary); }
+.arc-cat1 { font-size: 13px; font-weight: 700; color: var(--primary); }
 .arc-cat-sep { font-size: 11px; color: var(--muted); }
 .arc-cat2 { font-size: 12px; font-weight: 600; color: var(--ink); }
 /* main text (세부업무) */
 .arc-main-text { font-size: 12px; color: var(--subtle); padding-left: 2px; }
 /* subtasks */
 .arc-subs { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; padding-left: 4px; }
-.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--subtle); }
+.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--subtle); }
 .arc-sub-row.done .arc-sub-text { text-decoration: line-through; color: var(--muted); }
 .arc-sub-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--line-strong); }
 /* status badge */
@@ -1030,11 +1036,11 @@ select[id^="rf-"] { font-size: 13px; }
 .mytask-item.done-task { opacity: 0.5; }
 
 .mytask-body { flex: 1; min-width: 0; }
-.mytask-title { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.4; }
+.mytask-title { font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.4; }
 .mytask-item.done-task .mytask-title { text-decoration: line-through; color: var(--muted); }
 .mytask-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .mytask-badge {
-  font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 8px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px;
 }
 .mytask-badge.priority-high   { background: #fff0f1; color: var(--warn); }
 .mytask-badge.priority-normal { background: var(--bg); color: var(--muted); }
@@ -1042,7 +1048,7 @@ select[id^="rf-"] { font-size: 13px; }
 .mytask-badge.cat  { background: var(--purple-soft); color: var(--purple); }
 .mytask-badge.due  { background: var(--yellow-soft); color: #b87000; }
 .mytask-badge.due.overdue { background: #fff0f1; color: var(--warn); font-weight: 700; }
-.mytask-note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.mytask-note { font-size: 13px; color: var(--subtle); margin-top: 3px; }
 
 .mytask-actions { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; align-items: center; }
 
@@ -1060,18 +1066,18 @@ select[id^="rf-"] { font-size: 13px; }
   margin-bottom: 4px;
 }
 .crumb-cat1 {
-  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 20px;
   background: var(--primary-soft); color: var(--primary);
   letter-spacing: 0.01em;
 }
 .crumb-cat2 {
-  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 20px;
   background: var(--surface); color: var(--subtle);
   border: 1px solid var(--line);
 }
-.crumb-sep { color: var(--muted); font-size: 10px; }
+.crumb-sep { color: var(--muted); font-size: 11px; }
 .task-recurring-pill {
-  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
   background: #e8f0fe; color: #3c5ba9;
 }
 .task-rec-icon {
@@ -1090,8 +1096,8 @@ select[id^="rf-"] { font-size: 13px; }
 }
 .subtask-inline-item {
   display: flex; align-items: center; gap: 7px;
-  font-size: 12px; padding: 2px 0; cursor: pointer;
-  line-height: 1.4; flex-wrap: wrap;
+  font-size: 13px; padding: 2px 0; cursor: pointer;
+  line-height: 1.5; flex-wrap: wrap;
 }
 .subtask-inline-item input[type=checkbox] { accent-color: var(--primary); flex-shrink: 0; }
 .subtask-inline-item.done .sub-text { text-decoration: line-through; color: var(--muted); }
@@ -1374,15 +1380,15 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* ── Task hierarchy headers (내 업무 대분류/중분류) ─────────── */
 .task-cat1-wrap { margin-bottom: 20px; }
 .task-cat1-header {
-  font-size: 14px; font-weight: 800; color: var(--ink);
-  padding: 9px 18px; margin-bottom: 0;
+  font-size: 15px; font-weight: 800; color: var(--ink);
+  padding: 10px 18px; margin-bottom: 0;
   border-left: 4px solid var(--primary);
   background: linear-gradient(to right, #dbeafe 0%, var(--bg) 70%);
   letter-spacing: 0.01em; display: flex; align-items: center; gap: 6px;
 }
 .task-cat2-header {
-  font-size: 13px; font-weight: 700; color: var(--subtle);
-  padding: 6px 16px 6px 28px;
+  font-size: 14px; font-weight: 700; color: var(--subtle);
+  padding: 7px 16px 7px 28px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 7px;

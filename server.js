@@ -110,27 +110,81 @@ function genId() {
   return crypto.randomBytes(8).toString("hex");
 }
 
-// ── Upstash Redis 지원 (UPSTASH_REDIS_REST_URL 환경변수가 있을 때만 사용) ─────
-const KV_KEY = "scheduler_db";
-let _redis = null;
-async function _getKv() {
-  if (!process.env.UPSTASH_REDIS_REST_URL) return null;
-  if (!_redis) {
-    const { Redis } = await import("@upstash/redis");
-    _redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-    });
+// ── GitHub Storage (모든 인스턴스가 공유하는 영구 저장소) ─────────────────────
+// GITHUB_DB_TOKEN + GITHUB_DB_REPO 환경변수가 있으면 GitHub API를 DB로 사용
+// 로컬 개발: 파일 폴백, Vercel: GitHub 브랜치 'db'의 db.json
+const _gh = {
+  token: null, repo: null,
+  cache: null, cacheSha: null, cacheAt: 0,
+  writing: false, writeQueue: [],
+};
+const GH_CACHE_MS = 8000; // 8초 캐시 (동일 인스턴스 중복 읽기 방지)
+
+function _ghEnabled() {
+  if (!_gh.token) {
+    _gh.token = process.env.GITHUB_DB_TOKEN || null;
+    _gh.repo = process.env.GITHUB_DB_REPO || "xxiohc/smc-smart-scheduler";
   }
-  return _redis;
+  return !!_gh.token;
+}
+
+async function _ghFetch(path, opts = {}) {
+  const url = `https://api.github.com/repos/${_gh.repo}${path}`;
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      Authorization: `token ${_gh.token}`,
+      Accept: "application/vnd.github.v3+json",
+      "Content-Type": "application/json",
+      ...(opts.headers || {}),
+    },
+  });
+  return res;
+}
+
+async function _ghLoadDb() {
+  const now = Date.now();
+  if (_gh.cache && now - _gh.cacheAt < GH_CACHE_MS) {
+    return JSON.parse(JSON.stringify(_gh.cache));
+  }
+  const res = await _ghFetch("/contents/db.json?ref=db");
+  if (!res.ok) return null;
+  const meta = await res.json();
+  const content = Buffer.from(meta.content, "base64").toString("utf-8");
+  _gh.cache = JSON.parse(content);
+  _gh.cacheSha = meta.sha;
+  _gh.cacheAt = now;
+  return JSON.parse(JSON.stringify(_gh.cache));
+}
+
+async function _ghSaveDb(db) {
+  const snapshot = JSON.parse(JSON.stringify(db));
+  // 캐시 즉시 갱신 (다음 읽기에서 최신 반영)
+  _gh.cache = snapshot;
+  _gh.cacheAt = Date.now();
+  // SHA 없으면 먼저 조회
+  if (!_gh.cacheSha) {
+    const r = await _ghFetch("/contents/db.json?ref=db");
+    if (r.ok) { const m = await r.json(); _gh.cacheSha = m.sha; }
+  }
+  const body = JSON.stringify({
+    message: "db update [skip ci]",
+    content: Buffer.from(JSON.stringify(snapshot)).toString("base64"),
+    branch: "db",
+    sha: _gh.cacheSha || undefined,
+  });
+  const res = await _ghFetch("/contents/db.json", { method: "PUT", body });
+  if (res.ok) {
+    const m = await res.json();
+    _gh.cacheSha = m.content?.sha || _gh.cacheSha;
+  }
 }
 
 const _emptyDb = () => ({ members: [], reports: [], events: [], recurring: [], tasks: [], feedbacks: [] });
 
 async function loadDb() {
-  const kv = await _getKv();
-  if (kv) {
-    const data = await kv.get(KV_KEY);
+  if (_ghEnabled()) {
+    const data = await _ghLoadDb();
     return data || _emptyDb();
   }
   try {
@@ -141,15 +195,13 @@ async function loadDb() {
   }
 }
 
-// ── DB 쓰기 (KV: 직접 set / 파일: 뮤텍스 큐) ─────────────────────────────────
+// ── DB 쓰기 (GitHub: 직접 / 파일: 뮤텍스 큐) ────────────────────────────────
 let _dbWriteLocked = false;
 const _dbWriteQueue = [];
 
 async function saveDb(db) {
-  const kv = await _getKv();
-  if (kv) {
-    await kv.set(KV_KEY, JSON.parse(JSON.stringify(db)));
-    return;
+  if (_ghEnabled()) {
+    return _ghSaveDb(db);
   }
   return new Promise((resolve, reject) => {
     _dbWriteQueue.push({ db: JSON.parse(JSON.stringify(db)), resolve, reject });
