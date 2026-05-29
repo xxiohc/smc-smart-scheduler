@@ -756,8 +756,6 @@ function createWeekTaskItem(item, idx) {
   dateIn.type = "date";
   dateIn.className = "task-date";
   dateIn.value = item.date || "";
-  dateIn.addEventListener("change", (e) => { S.weekTasks[idx].date = e.target.value; });
-
   function applyDateStyle(st) {
     if (st === "done") {
       dateIn.title             = "완료일";
@@ -784,6 +782,15 @@ function createWeekTaskItem(item, idx) {
   const statusBtn = document.createElement("button");
   statusBtn.className = `task-status ${current}`;
   statusBtn.textContent = _WEEK_STATUS_LBL[current];
+  function syncStatusBtnVisibility(st, dateVal) {
+    statusBtn.style.display = (st === "in_progress" && dateVal) ? "none" : "";
+  }
+  syncStatusBtnVisibility(current, item.date || "");
+  dateIn.addEventListener("change", (e) => {
+    S.weekTasks[idx].date = e.target.value;
+    const cur2 = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
+    syncStatusBtnVisibility(cur2, e.target.value);
+  });
   statusBtn.addEventListener("click", () => {
     const cur = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
     const nxt = _WEEK_STATUSES[(_WEEK_STATUSES.indexOf(cur) + 1) % _WEEK_STATUSES.length];
@@ -791,6 +798,7 @@ function createWeekTaskItem(item, idx) {
     statusBtn.className = `task-status ${nxt}`;
     statusBtn.textContent = _WEEK_STATUS_LBL[nxt];
     applyDateStyle(nxt);
+    syncStatusBtnVisibility(nxt, S.weekTasks[idx].date || "");
   });
 
   const del = document.createElement("button");
