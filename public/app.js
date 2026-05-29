@@ -2501,7 +2501,7 @@ function renderCategoryAdmin() {
           addInput.value = "";
           renderCat2Chips();
         };
-        addInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCat2(); } });
+        addInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addCat2(); } });
         block.querySelector(".btn-cat-add").addEventListener("click", addCat2);
 
         // cat1 이름 수정
@@ -2537,7 +2537,7 @@ function renderCategoryAdmin() {
         addCat1Input.value = "";
         rebuildPartUI();
       };
-      addCat1Input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addCat1(); } });
+      addCat1Input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addCat1(); } });
       addRow.querySelector("button").addEventListener("click", addCat1);
       body.appendChild(addRow);
 
@@ -3640,7 +3640,7 @@ function openTaskModal(id, modalOpts = {}) {
 
   if (!simple) {
     renderMstList();
-    $("mst-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } });
+    $("mst-input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addSubtask(); } });
     $("mst-add-btn").addEventListener("click", addSubtask);
   }
 
