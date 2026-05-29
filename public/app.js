@@ -1923,14 +1923,22 @@ async function doArchiveSearch() {
           const tasksHtml = sorted.map((i) => {
             const st = _WEEK_LEGACY[i.status] || i.status || "in_progress";
             const wLabel = weeksRangeLabel(i.weeks);
-            const dtHtml = i.date
-              ? `<span class="archive-task-date">(${i.date.slice(5).replace("-","/")})</span>`
-              : wLabel ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
+            const dateStr = i.date ? i.date.slice(5).replace("-", "/") : "";
+            // 날짜: 텍스트 옆에 인라인
+            const inlineDtHtml = dateStr
+              ? `<span class="archive-task-date">(${dateStr})</span>`
+              : "";
+            // 주차 범위는 오른쪽에만 (날짜 없을 때)
+            const rightDtHtml = !dateStr && wLabel
+              ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
+            // 날짜 있고 진행중이면 배지 숨김
+            const showBadge = !(dateStr && st === "in_progress");
+            const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
             // cat1 / cat2 헤더
             const cat1Html = i.cat1 ? `<span class="arc-cat1">${esc(i.cat1)}</span>` : "";
             const cat2Html = i.cat2 || i.category ? `<span class="arc-cat2">${esc(i.cat2 || i.category)}</span>` : "";
             const catHtml = (cat1Html || cat2Html)
-              ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}</div>`
+              ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}${!i.text || i.text === (i.cat2 || i.category) || i.text === i.cat1 ? inlineDtHtml : ""}</div>`
               : "";
             // subtasks
             const subs = Array.isArray(i.subtasks) ? i.subtasks.filter(s => s.text?.trim()) : [];
@@ -1940,14 +1948,15 @@ async function doArchiveSearch() {
                   return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span></div>`;
                 }).join("")}</div>`
               : "";
-            const mainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1
-              ? `<span class="arc-main-text">${esc(i.text)}</span>` : "";
-            return `<div class="archive-item ${st}">
+            const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
+            const mainText = hasMainText
+              ? `<span class="arc-main-text">${esc(i.text)}${inlineDtHtml}</span>` : "";
+            return `<div class="archive-item ${st}" data-date="${esc(dateStr)}">
               <span class="archive-item-dot"></span>
               <div class="arc-item-body">
                 ${catHtml}${mainText}${subsHtml}
               </div>
-              <div class="arc-item-right">${dtHtml}<span class="arc-status-badge ${st}">${sLabel[st]}</span></div>
+              <div class="arc-item-right">${rightDtHtml}${badgeHtml}</div>
             </div>`;
           }).join("");
           const canFeedback = S.member.role === "admin" || S.member.role === "leader";
@@ -2040,10 +2049,15 @@ function exportArchivePdf() {
             <div class="task-list">`;
           items.forEach((item) => {
             const st = [...item.classList].find(c => statusColor[c]) || "in_progress";
-            const text = item.querySelector("span:last-child")?.textContent || "";
+            const itemDate = item.dataset?.date || "";
+            const arcBody = item.querySelector(".arc-item-body");
+            const text = arcBody ? arcBody.textContent.trim() : (item.querySelector("span:last-child")?.textContent || "");
+            const dateLabel = itemDate ? ` <span style="color:#8b95a1;font-size:8.5pt">(${itemDate})</span>` : "";
+            const showSt = !(itemDate && st === "in_progress");
+            const stLabel = showSt ? ` <span style="color:${statusColor[st]};font-size:8.5pt">[${statusLabel[st]}]</span>` : "";
             bodyHtml += `<div class="task-item">
               <span class="task-dot" style="background:${statusColor[st]}"></span>
-              <span class="task-text">${esc(text)}</span>
+              <span class="task-text">${esc(text)}${dateLabel}${stLabel}</span>
             </div>`;
           });
           if (noteEl) bodyHtml += `<div class="task-note">📌 ${esc(noteEl.textContent.replace("📌 ",""))}</div>`;
@@ -2068,10 +2082,15 @@ function exportArchivePdf() {
         <div class="task-list">`;
       items.forEach((item) => {
         const st = [...item.classList].find(c => statusColor[c]) || "in_progress";
-        const text = item.querySelector("span:last-child")?.textContent || "";
+        const itemDate = item.dataset?.date || "";
+        const arcBody = item.querySelector(".arc-item-body");
+        const text = arcBody ? arcBody.textContent.trim() : (item.querySelector("span:last-child")?.textContent || "");
+        const dateLabel = itemDate ? ` <span style="color:#8b95a1;font-size:8.5pt">(${itemDate})</span>` : "";
+        const showSt = !(itemDate && st === "in_progress");
+        const stLabel = showSt ? ` <span style="color:${statusColor[st]};font-size:8.5pt">[${statusLabel[st]}]</span>` : "";
         bodyHtml += `<div class="task-item">
           <span class="task-dot" style="background:${statusColor[st]}"></span>
-          <span class="task-text">${esc(text)}</span>
+          <span class="task-text">${esc(text)}${dateLabel}${stLabel}</span>
         </div>`;
       });
       if (noteEl) bodyHtml += `<div class="task-note">📌 ${esc(noteEl.textContent.replace("📌 ",""))}</div>`;
