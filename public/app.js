@@ -817,42 +817,65 @@ function createWeekTaskItem(item, idx) {
 
         const dateLbl = document.createElement("span");
         dateLbl.className = "wts-date-label";
-        dateLbl.textContent = "목표일자";
 
         const dateIn = document.createElement("input");
         dateIn.type = "date";
         dateIn.className = "wts-date";
         dateIn.value = s.due_date || "";
-        dateIn.title = "마감일";
 
-        // 라벨 표시 여부: 진행중 + 날짜 있을 때만
-        const applyDateColor = (val, st) => {
+        // 날짜 라벨·색상: 완료=완료일자(초록), 진행=목표일자(주황, 초과시 빨강), 계획=대기
+        const applyDateState = (val, st) => {
           const today = dateKey(new Date());
           const isOverdue = val && st !== "done" && val < today;
           dateIn.classList.toggle("overdue", isOverdue);
-          dateLbl.classList.toggle("visible", !!(val && st === "in_progress"));
+          if (st === "done") {
+            dateLbl.textContent = "완료일자";
+            dateLbl.classList.remove("visible-warn");
+            dateLbl.classList.toggle("visible", !!val);
+            dateLbl.classList.add("done-lbl");
+          } else if (st === "in_progress") {
+            dateLbl.textContent = "목표일자";
+            dateLbl.classList.remove("done-lbl");
+            dateLbl.classList.toggle("visible", !!val);
+          } else {
+            dateLbl.textContent = "목표일자";
+            dateLbl.classList.remove("done-lbl");
+            dateLbl.classList.toggle("visible", !!val);
+          }
         };
-        applyDateColor(s.due_date || "", sStatus);
+        applyDateState(s.due_date || "", sStatus);
         dateIn.addEventListener("change", (e) => {
           S.weekTasks[idx].subtasks[si].due_date = e.target.value;
           const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
-          applyDateColor(e.target.value, cur);
+          applyDateState(e.target.value, cur);
         });
 
         dateWrap.appendChild(dateLbl);
         dateWrap.appendChild(dateIn);
 
-        const stBtn = document.createElement("button");
-        stBtn.className = `sub-status-badge ${cls}`;
-        stBtn.textContent = lbl;
-        stBtn.title = "클릭하여 상태 변경";
-        stBtn.addEventListener("click", () => {
-          const sts = ["in_progress", "done", "waiting"];
-          const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
-          const nxt = sts[(sts.indexOf(cur) + 1) % sts.length];
-          S.weekTasks[idx].subtasks[si].status = nxt;
-          S.weekTasks[idx].subtasks[si].done = (nxt === "done");
-          rebuildSubs();
+        // 상태 3버튼 (계획 / 진행 / 완료)
+        const stGroup = document.createElement("div");
+        stGroup.className = "wts-st-group";
+        const SUB_STS = [
+          { key: "waiting",     label: "계획" },
+          { key: "in_progress", label: "진행" },
+          { key: "done",        label: "완료" },
+        ];
+        SUB_STS.forEach(({ key, label }) => {
+          const btn = document.createElement("button");
+          btn.className = "wts-st-btn wts-st-" + key + (sStatus === key ? " active" : "");
+          btn.dataset.stkey = key;
+          btn.textContent = label;
+          btn.addEventListener("click", () => {
+            S.weekTasks[idx].subtasks[si].status = key;
+            S.weekTasks[idx].subtasks[si].done = (key === "done");
+            stGroup.querySelectorAll(".wts-st-btn").forEach(b =>
+              b.classList.toggle("active", b.dataset.stkey === key)
+            );
+            row.className = "week-task-sub-row" + (key === "done" ? " done" : "");
+            applyDateState(S.weekTasks[idx].subtasks[si].due_date || "", key);
+          });
+          stGroup.appendChild(btn);
         });
 
         const delBtn = document.createElement("button");
@@ -866,7 +889,7 @@ function createWeekTaskItem(item, idx) {
         row.appendChild(dot);
         row.appendChild(inp);
         row.appendChild(dateWrap);
-        row.appendChild(stBtn);
+        row.appendChild(stGroup);
         row.appendChild(delBtn);
         subList.appendChild(row);
       });
@@ -959,14 +982,30 @@ function createWeekTaskItem(item, idx) {
     iDate.type = "date";
     iDate.className = "wtc-inline-date";
     iDate.value = item.date || "";
+
+    const iDateWrap = document.createElement("div");
+    iDateWrap.className = "wts-date-wrap";
+    const iDateLbl = document.createElement("span");
+    iDateLbl.className = "wts-date-label";
+    const applyInlineDateLbl = (val, st) => {
+      iDateLbl.textContent = st === "done" ? "완료일자" : "목표일자";
+      iDateLbl.classList.remove("done-lbl");
+      if (st === "done") iDateLbl.classList.add("done-lbl");
+      iDateLbl.classList.toggle("visible", !!val);
+    };
+    applyInlineDateLbl(item.date || "", current);
+    iDateWrap.appendChild(iDateLbl);
+    iDateWrap.appendChild(iDate);
+
     iDate.addEventListener("change", (e) => {
       S.weekTasks[idx].date = e.target.value;
       dateIn.value = e.target.value;
       const cur = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
       applyDateStyle(cur);
+      applyInlineDateLbl(e.target.value, cur);
       syncStatusBtnVisibility(cur, e.target.value);
     });
-    inlineCtrl.appendChild(iDate);
+    inlineCtrl.appendChild(iDateWrap);
 
     [
       { key: "waiting",     label: "계획" },
@@ -984,6 +1023,7 @@ function createWeekTaskItem(item, idx) {
           b.classList.toggle("active", b.dataset.stkey === key)
         );
         applyDateStyle(key);
+        applyInlineDateLbl(S.weekTasks[idx].date || "", key);
         statusBtn.className = `task-status ${key}`;
         statusBtn.textContent = _WEEK_STATUS_LBL[key];
         syncStatusBtnVisibility(key, S.weekTasks[idx].date || "");
@@ -2264,7 +2304,18 @@ async function doArchiveSearch() {
             const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
             const mainText = hasMainText
               ? `<span class="arc-main-text">${esc(i.text)}${inlineDtHtml}</span>` : "";
-            return `<div class="archive-item ${st}" data-date="${esc(dateStr)}">
+            const _itemJson = JSON.stringify({
+              memberName: m.name || "?",
+              memberPart: m.part || "",
+              cat1: i.cat1 || "",
+              cat2: i.cat2 || i.category || "",
+              text: i.text || "",
+              status: st,
+              date: i.date || "",
+              reportYear: targetYear,
+              reportWeek: 0,
+            }).replace(/"/g, "&quot;");
+            return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
               <span class="archive-item-dot"></span>
               <div class="arc-item-body">
                 ${catHtml}${mainText}${badgeHtml}${subsHtml}
