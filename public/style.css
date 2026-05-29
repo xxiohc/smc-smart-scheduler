@@ -713,6 +713,14 @@ input, select, textarea { outline: none; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;
 }
+.cal-event.draggable-event { cursor: grab; user-select: none; }
+.cal-event.draggable-event:active { cursor: grabbing; }
+.cal-event.dragging { opacity: 0.35; outline: 2px dashed currentColor; }
+.cal-cell.drag-over {
+  background: var(--primary-soft, #e8f0fe) !important;
+  outline: 2px dashed var(--primary);
+  outline-offset: -3px;
+}
 .cal-event.vacation { background: var(--yellow-soft); color: #b87000; }
 .cal-event.business_trip { background: var(--primary-soft); color: var(--primary-dark); }
 .cal-event.education { background: #e8f5e9; color: #2e7d32; }

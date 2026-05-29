@@ -1290,6 +1290,10 @@ async function renderCalendar(silent = false) {
   updateCalSearchUI();
 }
 
+// 캘린더 드래그앤드롭 — 현재 드래그 중인 이벤트 정보
+let _calDrag = null; // { id, startDate, endDate }
+let _calDropDone = false; // drop 직후 cell click 억제
+
 function buildCalendarGrid(year, month, firstDay, lastDay, events) {
   const grid = $("calendarGrid");
   const holidays = getHolidays(year);
@@ -1397,6 +1401,24 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
           evEl.textContent = `${icon} ${name} ${typeLabel(e.type)}`;
           evEl.title = `${name} · ${typeLabel(e.type)}${e.note ? " · " + e.note : ""}`;
         }
+
+        // ── 드래그앤드롭: 생일 제외 실제 이벤트만 이동 가능 ──
+        const canDrag = !e.isBirthday && e.type !== "birthday";
+        if (canDrag) {
+          evEl.draggable = true;
+          evEl.classList.add("draggable-event");
+          evEl.addEventListener("dragstart", (evt) => {
+            _calDrag = { id: e.id, startDate: e.start_date, endDate: e.end_date };
+            evt.dataTransfer.effectAllowed = "move";
+            evt.dataTransfer.setData("text/plain", e.id);
+            evEl.classList.add("dragging");
+            evt.stopPropagation();
+          });
+          evEl.addEventListener("dragend", () => {
+            evEl.classList.remove("dragging");
+          });
+        }
+
         evtsEl.appendChild(evEl);
       });
       if (dayEvents.length > 3) {
@@ -1408,9 +1430,50 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
       }
       cell.appendChild(evtsEl);
 
+      // ── 드롭 대상 ──
+      cell.addEventListener("dragover", (evt) => {
+        if (!_calDrag) return;
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = "move";
+        cell.classList.add("drag-over");
+      });
+      cell.addEventListener("dragleave", (evt) => {
+        if (!evt.currentTarget.contains(evt.relatedTarget)) {
+          cell.classList.remove("drag-over");
+        }
+      });
+      cell.addEventListener("drop", async (evt) => {
+        evt.preventDefault();
+        cell.classList.remove("drag-over");
+        if (!_calDrag) return;
+        const { id, startDate, endDate } = _calDrag;
+        _calDrag = null;
+        if (startDate === key) return; // 같은 날짜면 무시
+
+        const origStartMs = new Date(startDate + "T00:00:00").getTime();
+        const origEndMs   = new Date(endDate   + "T00:00:00").getTime();
+        const duration    = origEndMs - origStartMs;
+        const newStartMs  = new Date(key + "T00:00:00").getTime();
+        const newEndMs    = newStartMs + duration;
+        const newStart    = dateKey(new Date(newStartMs));
+        const newEnd      = dateKey(new Date(newEndMs));
+
+        _calDropDone = true;
+        setTimeout(() => { _calDropDone = false; }, 150);
+
+        try {
+          await api("PUT", `/api/events/${id}`, { start_date: newStart, end_date: newEnd });
+          showToast(`✓ ${newStart.slice(5).replace("-","/")}(으)로 이동됐습니다.`);
+          renderCalendar();
+        } catch (e) {
+          showToast("이동 실패: " + e.message, "error");
+        }
+      });
+
       // 날짜 클릭 → 이벤트 등록 팝업
       cell.style.cursor = "pointer";
       cell.addEventListener("click", () => {
+        if (_calDropDone) return; // drop 직후 click 무시
         openCalDateModal(key, dayEvents);
       });
 
