@@ -173,15 +173,51 @@ async function _processWriteQueue() {
   }
 }
 
+// ── 초기 시드 멤버 데이터 (Vercel cold-start 등 빈 DB에서 복원) ──────────────
+// PIN 기본값 "1234" → hashPin("1234") = 12ca2bf6...
+// 최지석 PIN은 별도 설정됨 (41f5f6a6...)
+const SEED_MEMBERS = [
+  { id:"4c157e4af00eb5b0", name:"김종국",  part:"경영지원팀",  role:"admin",   pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:"", joined:"2026-05-28", birthday_type:"solar" },
+  { id:"62fb2ac1be5af259", name:"나정민",  part:"경영관리파트", role:"leader",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"8b20604dd988c02b", name:"권민",    part:"경영관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"790940b814bfa92e", name:"조윤서",  part:"경영관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"4eee644771da81f9", name:"박수현",  part:"재무관리파트", role:"leader",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"4a429ee1a744739f", name:"정미선",  part:"재무관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"b7d77c1d444ecb10", name:"최지석",  part:"재무관리파트", role:"admin",   pin_hash:"41f5f6a6767a2651aaa4a82829dd20645f4719b762bbe023091d01eb3aa8abef",  birthday:"", joined:"2026-05-28", birthday_type:"solar" },
+  { id:"833e341796899794", name:"권기범",  part:"재무관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"25b11342f8136f9c", name:"문지원",  part:"재무관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"b86263e231d68ecd", name:"구연정",  part:"재무관리파트", role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"0c4016d1d5aabe95", name:"박미숙",  part:"구매파트",    role:"leader",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"6564ce4e88dec65f", name:"김상엽",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"2b110b83756d1ca2", name:"심규옥",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"e31dbcb1925bdf37", name:"손정균",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"c9338f2537d8f499", name:"이준경",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"dbc2749288ea4dbe", name:"김도영",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"c7a72a1a259a5845", name:"박태순",  part:"구매파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"4edf5fe60fc215e7", name:"장성웅",  part:"의공파트",    role:"leader",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"6aff71322a76e262", name:"조원일",  part:"의공파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"729615d094789e05", name:"김정일",  part:"의공파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"f6108eadfdee85c6", name:"윤종부",  part:"의공파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"dc6516e23c0d9bd4", name:"김창진",  part:"의공파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+  { id:"09990c42d5fcf1e6", name:"김경두",  part:"의공파트",    role:"member",  pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:null, joined:"2026-05-28" },
+];
+
 async function ensureDefaultData() {
   const db = await loadDb();
-  // 멤버가 없을 때만 초기 데이터 생성 (더미 관리자 계정 없이)
   if (!db.members) db.members = [];
   if (!db.reports) db.reports = [];
   if (!db.events) db.events = [];
   if (!db.recurring) db.recurring = [];
   if (!db.tasks) db.tasks = [];
   if (!db.feedbacks) db.feedbacks = [];
+  // 빈 DB면 시드 멤버로 초기화 (Vercel cold-start 포함)
+  if (db.members.length === 0) {
+    db.members = SEED_MEMBERS.map(m => ({ ...m }));
+  } else {
+    // 최지석 role 보정 (기존 DB에서도 admin 유지)
+    const jiseok = db.members.find(m => m.id === "b7d77c1d444ecb10");
+    if (jiseok && jiseok.role !== "admin") jiseok.role = "admin";
+  }
   await saveDb(db);
 }
 
