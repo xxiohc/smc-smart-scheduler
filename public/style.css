@@ -22,7 +22,7 @@
   --shadow: 0 8px 24px rgba(25, 31, 40, 0.08);
   --radius: 14px;
   --radius-sm: 8px;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -1825,4 +1825,31 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
+
+/* ═══════════════════════════════════════════════════════════
+   FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)
+   원본값은 주석으로 보존. 되돌리려면 이 블록 전체 제거.
+   적용 조건: 화면 너비 1280px 이상 + 해상도 1.5배율 미만 (non-Retina)
+   ═══════════════════════════════════════════════════════════ */
+@media screen and (min-width: 1280px) and (max-resolution: 1.5dppx) {
+  :root {
+    --muted: #4b5563;   /* 원본: #6b7280 */
+    --subtle: #1f2937;  /* 원본: #374151 */
+  }
+  .week-date-range { font-weight: 500; }       /* 원본: 400 */
+  .header-sub { font-weight: 500; }            /* 원본: 400 */
+  .tab-btn { font-weight: 600; }               /* 원본: 500 */
+  .page-desc { font-weight: 450; }             /* 원본: default */
+  .team-card-preview { font-size: 13px; font-weight: 500; }   /* 원본: 12px, default */
+  .team-card-count   { font-size: 13px; font-weight: 500; }   /* 원본: 12px, default */
+  .team-member-part  { font-size: 12px; font-weight: 500; }   /* 원본: 11px */
+  .archive-week-meta   { font-weight: 500; }   /* 원본: default */
+  .archive-member-part { font-weight: 500; }   /* 원본: 400 */
+  input:not([type=checkbox]):not([type=radio]), select, textarea { font-weight: 450; }
+  .event-list-date     { font-size: 12px; font-weight: 500; } /* 원본: 11px */
+  .event-list-note     { font-size: 12px; font-weight: 450; } /* 원본: 11px */
+  .cal-year-event-note { font-size: 12px; font-weight: 450; } /* 원본: 11px */
+  .cal-search-item-part { font-size: 12px; }                  /* 원본: 11px */
+  .import-task-subs { font-size: 12px; font-weight: 500; }    /* 원본: 11px */
+}
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
