@@ -1964,9 +1964,9 @@ async function doArchiveSearch() {
             return `<div class="archive-item ${st}" data-date="${esc(dateStr)}">
               <span class="archive-item-dot"></span>
               <div class="arc-item-body">
-                ${catHtml}${mainText}${subsHtml}
+                ${catHtml}${mainText}${badgeHtml}${subsHtml}
               </div>
-              <div class="arc-item-right">${rightDtHtml}${badgeHtml}</div>
+              ${rightDtHtml ? `<div class="arc-item-right">${rightDtHtml}</div>` : ""}
             </div>`;
           }).join("");
           const canFeedback = S.member.role === "admin" || S.member.role === "leader";

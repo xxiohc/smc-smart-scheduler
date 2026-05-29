@@ -776,42 +776,42 @@ input, select, textarea { outline: none; }
 .archive-week-meta { font-size: 12px; color: var(--muted); }
 .archive-week-body { padding: 0; }
 .archive-member-row {
-  border-bottom: 1px solid var(--line); padding: 14px 20px;
+  border-bottom: 1px solid var(--line); padding: 10px 20px;
 }
 .archive-member-row:last-child { border-bottom: none; }
-.archive-member-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-.archive-member-part { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.archive-member-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.archive-member-part { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
 .archive-results-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-.archive-items { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-.archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink); padding: 5px 0; border-bottom: 1px solid var(--line); }
+.archive-items { display: flex; flex-direction: column; gap: 0; margin-bottom: 4px; }
+.archive-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); padding: 3px 0; border-bottom: 1px solid var(--line); }
 .archive-item:last-child { border-bottom: none; }
-.archive-item-dot { margin-top: 7px; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+.archive-item-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
 .archive-item.done .archive-item-dot        { background: var(--good); }
 .archive-item.in_progress .archive-item-dot { background: var(--primary); }
 .archive-item.hold .archive-item-dot        { background: var(--yellow); }
 .archive-item.partial .archive-item-dot     { background: var(--yellow); }
 /* arc item layout */
-.arc-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.arc-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.arc-item-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
 /* cat breadcrumb */
-.arc-cats { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.arc-cats { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
 .arc-cat1 { font-size: 13px; font-weight: 700; color: var(--primary); }
 .arc-cat-sep { font-size: 11px; color: var(--muted); }
-.arc-cat2 { font-size: 12px; font-weight: 600; color: var(--ink); }
+.arc-cat2 { font-size: 13px; font-weight: 600; color: var(--ink); }
 /* main text (세부업무) */
-.arc-main-text { font-size: 12px; color: var(--subtle); padding-left: 2px; }
+.arc-main-text { font-size: 13px; color: var(--subtle); }
 /* subtasks */
-.arc-subs { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; padding-left: 4px; }
-.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--subtle); }
+.arc-subs { display: flex; flex-direction: column; gap: 1px; padding-left: 4px; width: 100%; }
+.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--subtle); }
 .arc-sub-row.done .arc-sub-text { text-decoration: line-through; color: var(--muted); }
 .arc-sub-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--line-strong); }
-/* status badge */
+/* status badge — 텍스트 옆 인라인 */
 .arc-status-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
 .arc-status-badge.done        { background: #dcfce7; color: var(--good); }
 .arc-status-badge.in_progress { background: var(--primary-soft); color: var(--primary); }
 .arc-status-badge.hold        { background: #fef9c3; color: #a16207; }
 .arc-status-badge.partial     { background: #fef9c3; color: #a16207; }
-.archive-note { font-size: 12px; color: var(--subtle); margin-top: 4px; font-style: italic; }
+.archive-note { font-size: 12px; color: var(--subtle); margin-top: 2px; font-style: italic; }
 
 /* ── Member table (admin) ────────────────────────────────── */
 .member-table {
