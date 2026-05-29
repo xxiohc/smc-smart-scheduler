@@ -1732,12 +1732,19 @@ async function doArchiveSearch() {
       const allReports = reports;
       const memberTaskMap = {}; // memberId → { member, tasks: [...] }
 
-      // 주차 범위 레이블 헬퍼
+      // 주차 범위 → 날짜 레이블 헬퍼 (단일: "5/26", 범위: "5/19~5/25")
       function weeksRangeLabel(weeks) {
         if (!weeks || weeks.length === 0) return "";
         const sorted = [...weeks].sort((a, b) => a - b);
-        if (sorted.length === 1) return `${sorted[0]}주차`;
-        return `${sorted[0]}주차~${sorted[sorted.length - 1]}주차`;
+        const first = sorted[0], last = sorted[sorted.length - 1];
+        if (first === last) {
+          // 단일 주차: 해당 주의 월요일~일요일 범위
+          const ws = weekStart(year, first), we = weekEnd(year, first);
+          return `${fmtDate(ws)}~${fmtDate(we)}`;
+        }
+        // 복수 주차: 첫 주 시작일 ~ 마지막 주 종료일
+        const ws = weekStart(year, first), we = weekEnd(year, last);
+        return `${fmtDate(ws)}~${fmtDate(we)}`;
       }
 
       allReports.forEach((r) => {
@@ -1809,7 +1816,29 @@ async function doArchiveSearch() {
             const dtHtml = i.date
               ? `<span class="archive-task-date">(${i.date.slice(5).replace("-","/")})</span>`
               : wLabel ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
-            return `<div class="archive-item ${st}"><span class="archive-item-dot"></span><span>[${sLabel[st]}] ${esc(i.text)}</span>${dtHtml}</div>`;
+            // cat1 / cat2 헤더
+            const cat1Html = i.cat1 ? `<span class="arc-cat1">${esc(i.cat1)}</span>` : "";
+            const cat2Html = i.cat2 || i.category ? `<span class="arc-cat2">${esc(i.cat2 || i.category)}</span>` : "";
+            const catHtml = (cat1Html || cat2Html)
+              ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}</div>`
+              : "";
+            // subtasks
+            const subs = Array.isArray(i.subtasks) ? i.subtasks.filter(s => s.text?.trim()) : [];
+            const subsHtml = subs.length
+              ? `<div class="arc-subs">${subs.map(s => {
+                  const done = s.done || (_WEEK_LEGACY[s.status] || s.status) === "done";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span></div>`;
+                }).join("")}</div>`
+              : "";
+            const mainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1
+              ? `<span class="arc-main-text">${esc(i.text)}</span>` : "";
+            return `<div class="archive-item ${st}">
+              <span class="archive-item-dot"></span>
+              <div class="arc-item-body">
+                ${catHtml}${mainText}${subsHtml}
+              </div>
+              <div class="arc-item-right">${dtHtml}<span class="arc-status-badge ${st}">${sLabel[st]}</span></div>
+            </div>`;
           }).join("");
           const canFeedback = S.member.role === "admin" || S.member.role === "leader";
           const periodVal = view === "monthly" ? Number($("archiveMonth").value) : Number($("archiveQuarter").value);
