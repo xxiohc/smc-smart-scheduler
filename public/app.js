@@ -2748,71 +2748,52 @@ function isTaskThisWeek(task, year, week) {
 
 /* ── 공통 업무 카드 빌더 ─────────────────────────────────────── */
 function buildTaskCard(task, opts = {}) {
-  const { thisWeek = false, showCat = true, num = null } = opts;
+  const { thisWeek = false, num = null } = opts;
   const isDone = task.status === "done";
-  const today  = dateKey(new Date());
+  const isLinkedRecurring = (S.recurring || []).some((r) => r.text === task.title);
 
+  // ── 한 줄 compact 카드 ──────────────────────────────────────────
   const item = document.createElement("div");
-  item.className = "mytask-item" + (isDone ? " done-task" : "") + (thisWeek && !isDone ? " this-week-task" : "");
+  item.className = "routine-card" + (isDone ? " done-task" : "") + (thisWeek && !isDone ? " this-week-task" : "");
 
-  // 번호 배지
+  // 번호
   if (num !== null) {
-    const numEl = document.createElement("div");
+    const numEl = document.createElement("span");
     numEl.className = "task-num";
     numEl.textContent = `#${num}`;
     item.appendChild(numEl);
   }
 
-  const subs     = task.subtasks || [];
-  const subTotal = subs.length;
-  const isOverdue = task.due_date && task.due_date < today && !isDone;
+  // cat1 › cat2 라벨 (메인 콘텐츠)
+  const cat1 = task.cat1 || "";
+  const cat2 = task.category || "";
+  const label = document.createElement("div");
+  label.className = "routine-label";
+  if (cat1 || cat2) {
+    label.innerHTML =
+      (cat1 ? `<span class="rl-cat1">${esc(cat1)}</span>` : "") +
+      (cat1 && cat2 ? `<span class="rl-sep"> › </span>` : "") +
+      (cat2 ? `<span class="rl-cat2">${esc(cat2)}</span>` : "");
+  } else {
+    label.innerHTML = `<span class="rl-empty">${esc(task.title || "업무")}</span>`;
+  }
+  item.appendChild(label);
 
-  // 반복업무 연결 여부 (제목 매칭)
-  const isLinkedRecurring = (S.recurring || []).some((r) => r.text === task.title);
-
-  const body = document.createElement("div");
-  body.className = "mytask-body";
-
-  // 카테고리 브레드크럼 — 계층 뷰 외부에서만 표시 (계층 뷰 내에선 헤더가 대신함)
-  if (showCat) {
-    const cat1 = task.cat1 || "";
-    const cat2 = task.category || "";
-    const crumbParts = [cat1, cat2].filter(Boolean);
-    if (crumbParts.length > 0 || isLinkedRecurring) {
-      const crumb = document.createElement("div");
-      crumb.className = "task-cat-crumb";
-      crumb.innerHTML = crumbParts.map((p, i) =>
-        i === 0 ? `<span class="crumb-cat1">${esc(p)}</span>`
-                : `<span class="crumb-sep">›</span><span class="crumb-cat2">${esc(p)}</span>`
-      ).join("");
-      if (isLinkedRecurring) crumb.innerHTML += ` <span class="task-recurring-pill">🔁 반복</span>`;
-      body.appendChild(crumb);
-    }
+  // 주기 배지 (cycle 필드)
+  if (task.cycle) {
+    const cyBadge = document.createElement("span");
+    cyBadge.className = "routine-cycle-badge";
+    cyBadge.textContent = task.cycle + (task.cycle_day ? ` ${task.cycle_day}일` : "");
+    item.appendChild(cyBadge);
   }
 
-  // 제목 (반복업무면 앞에 🔁 아이콘)
-  const titleEl = document.createElement("div");
-  titleEl.className = "mytask-title";
-  titleEl.innerHTML = (isLinkedRecurring ? `<span class="task-rec-icon" title="반복업무">🔁</span> ` : "") + esc(task.title);
-  body.appendChild(titleEl);
-
-  // 마감일 + 메모
-  const metaParts = [];
-  if (task.due_date) metaParts.push(`<span class="mytask-badge due${isOverdue ? " overdue" : ""}">📅 ${task.due_date.slice(5).replace("-","/")}${isOverdue ? " ⚠" : ""}</span>`);
-  if (task.note)     metaParts.push(`<span class="mytask-note-inline">${esc(task.note)}</span>`);
-  if (metaParts.length) {
-    const meta = document.createElement("div");
-    meta.className = "mytask-meta";
-    meta.innerHTML = metaParts.join("");
-    body.appendChild(meta);
-  }
-
-  // 루틴 업무 목록: 세부업무가 있으면 카운트만 작게 표시 (목록은 주차별 업무현황에서 관리)
-  if (subTotal > 0) {
-    const subCount = document.createElement("span");
-    subCount.className = "routine-sub-count";
-    subCount.textContent = `세부업무 ${subTotal}건`;
-    body.appendChild(subCount);
+  // 반복업무 연결 아이콘
+  if (isLinkedRecurring) {
+    const recIcon = document.createElement("span");
+    recIcon.className = "task-rec-icon";
+    recIcon.title = "반복업무 연결";
+    recIcon.textContent = "🔁";
+    item.appendChild(recIcon);
   }
 
   // 액션
@@ -2856,7 +2837,6 @@ function buildTaskCard(task, opts = {}) {
   actions.appendChild(editBtn);
   actions.appendChild(delBtn);
 
-  item.appendChild(body);
   item.appendChild(actions);
   return item;
 }
@@ -2987,14 +2967,19 @@ async function renderMyTasks() {
     return;
   }
 
-  // ── 진행 중 업무 전체: 카테고리 계층으로 바로 렌더 ──────────
-  // 반복업무 별도 섹션 없이, 일반 업무 카드에 🔁 아이콘만 표시
-  const activeCounter = { n: 0 };
+  // ── 루틴 업무 flat 리스트 (cat1 → cat2 → title 순) ──────────
   const activeTasks = S.tasks.filter((t) => t.status !== "done");
-  appendTasksByHierarchy(container, activeTasks, {
-    counter: activeCounter,
-    markThisWeek: true,
-    year, week,
+  const cat1Order = getPartCat1List(S.member?.part || "");
+  activeTasks.sort((a, b) => {
+    const i1a = cat1Order.indexOf(a.cat1 || ""), i1b = cat1Order.indexOf(b.cat1 || "");
+    if (i1a !== i1b) { if (i1a < 0) return 1; if (i1b < 0) return -1; return i1a - i1b; }
+    const c2d = (a.category || "").localeCompare(b.category || "", "ko");
+    if (c2d) return c2d;
+    return (a.title || "").localeCompare(b.title || "", "ko");
+  });
+  activeTasks.forEach((task, i) => {
+    const tw = isTaskThisWeek(task, year, week);
+    container.appendChild(buildTaskCard(task, { num: i + 1, thisWeek: tw }));
   });
 
   // ── 완료된 업무 (접기/펼치기) ──────────────────────────────────
@@ -3006,7 +2991,9 @@ async function renderMyTasks() {
     summary.innerHTML = `<span>✅ 완료된 업무</span><span class="group-label-count">${doneTasks.length}건</span>`;
     details.appendChild(summary);
     const inner = document.createElement("div");
-    appendTasksByHierarchy(inner, doneTasks, { thisWeek: false, counter: { n: 0 } });
+    doneTasks.forEach((task, i) => {
+      inner.appendChild(buildTaskCard(task, { num: i + 1, thisWeek: false }));
+    });
     details.appendChild(inner);
     container.appendChild(details);
   }
@@ -3196,6 +3183,25 @@ function openTaskModal(id, modalOpts = {}) {
         </div>
       </div>
 
+      <div class="field-row">
+        <div class="form-field">
+          <label>주기 <span class="field-hint">(루틴 업무 주기)</span></label>
+          <select id="tf-cycle">
+            <option value="">없음</option>
+            <option value="매주"   ${task?.cycle==="매주"   ?"selected":""}>매주</option>
+            <option value="매월"   ${task?.cycle==="매월"   ?"selected":""}>매월</option>
+            <option value="분기별" ${task?.cycle==="분기별" ?"selected":""}>분기별 (3개월)</option>
+            <option value="반기별" ${task?.cycle==="반기별" ?"selected":""}>반기별 (6개월)</option>
+            <option value="매년"   ${task?.cycle==="매년"   ?"selected":""}>매년</option>
+          </select>
+        </div>
+        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'?'':'display:none'}">
+          <label>일 <span class="field-hint">(1~31)</span></label>
+          <input id="tf-cycle-day" type="number" min="1" max="31"
+            value="${task?.cycle_day||""}" placeholder="25" />
+        </div>
+      </div>
+
       <div class="form-field">
         <label>세부 업무 <span class="field-hint">(선택) 항목별 마감일·상태 설정 가능</span></label>
         <div id="mst-list" class="mst-list mst-list-v2"></div>
@@ -3365,6 +3371,13 @@ function openTaskModal(id, modalOpts = {}) {
     }
   });
 
+  /* ── 주기 필드 토글 ─────────────────────────────── */
+  $("tf-cycle")?.addEventListener("change", () => {
+    const v = $("tf-cycle").value;
+    const showDay = v && v !== "매주" && v !== "분기별" && v !== "반기별";
+    $("tf-cycle-day-wrap").style.display = showDay ? "" : "none";
+  });
+
   /* ── 반복 토글 ───────────────────────────────────── */
   if (isNew) {
     $("tf-rec-on").addEventListener("change", (e) => {
@@ -3406,14 +3419,18 @@ function openTaskModal(id, modalOpts = {}) {
       else if (validSubs.every((s) => s.status === "waiting")) taskStatus = "waiting";
     }
 
+    const cycleVal    = $("tf-cycle")?.value || "";
+    const cycleDayVal = cycleVal && $("tf-cycle-day").value ? Number($("tf-cycle-day").value) : null;
     const body = {
       title,
-      cat1:     cat1Val,
-      category: cat2Val,
-      status:   taskStatus,
-      due_date: null,
-      note:     $("tf-note").value.trim(),
-      subtasks: validSubs,
+      cat1:      cat1Val,
+      category:  cat2Val,
+      status:    taskStatus,
+      due_date:  null,
+      note:      $("tf-note").value.trim(),
+      subtasks:  validSubs,
+      cycle:     cycleVal,
+      cycle_day: cycleDayVal,
     };
     try {
       if (isNew) {

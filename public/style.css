@@ -1026,6 +1026,33 @@ select[id^="rf-"] { font-size: 13px; }
 .task-status-filter button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
 
 .mytasks-list { display: flex; flex-direction: column; }
+
+/* ── 루틴 업무 카드 (한 줄 compact) ─────────────────────── */
+.routine-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px 11px 12px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.1s; min-height: 46px;
+}
+.routine-card:last-child { border-bottom: none; }
+.routine-card:hover { background: #f8faff; }
+.routine-card.done-task { opacity: 0.45; }
+.routine-card.this-week-task { background: #eef6ff; }
+/* cat1 › cat2 라벨 */
+.routine-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+.rl-cat1 { font-size: 15px; font-weight: 700; color: var(--ink); }
+.rl-sep  { font-size: 14px; color: var(--muted); padding: 0 4px; }
+.rl-cat2 { font-size: 15px; font-weight: 600; color: var(--primary); }
+.rl-empty{ font-size: 15px; color: var(--muted); font-style: italic; }
+/* 주기 배지 */
+.routine-cycle-badge {
+  flex-shrink: 0; font-size: 12px; font-weight: 600;
+  padding: 2px 9px; border-radius: 20px;
+  background: #fef3c7; color: #92400e;
+  border: 1px solid #fde68a; white-space: nowrap;
+}
+
+/* 기존 호환 */
 .mytask-item {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px 12px 12px; border-bottom: 1px solid var(--line);
