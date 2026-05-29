@@ -2946,7 +2946,7 @@ async function renderMyTasks() {
   }
 }
 
-/* ── 업무 정렬 (카테고리① → ② → 제목 순) ───────────────────── */
+/* ── 업무 정렬 (카테고리① → ② → 제목 내림차순) ─────────────── */
 function sortMyTasks() {
   const part = (S.taskTargetMemberId
     ? S.members?.find((m) => m.id === S.taskTargetMemberId)?.part
@@ -2958,11 +2958,11 @@ function sortMyTasks() {
     if (i1a !== i1b) {
       if (i1a === -1) return 1;
       if (i1b === -1) return -1;
-      return i1a - i1b;
+      return i1b - i1a; // 내림차순
     }
     const c2a = a.category || "", c2b = b.category || "";
-    if (c2a !== c2b) return c2a.localeCompare(c2b, "ko");
-    return (a.title || "").localeCompare(b.title || "", "ko");
+    if (c2a !== c2b) return c2b.localeCompare(c2a, "ko"); // 내림차순
+    return (b.title || "").localeCompare(a.title || "", "ko"); // 내림차순
   });
   renderMyTasks();
 }
