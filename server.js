@@ -983,5 +983,3 @@ if (!process.env.VERCEL) {
 }
 
 export default handler;
-
-export default handler;
