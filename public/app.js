@@ -412,6 +412,102 @@ function renderDashWeekHeader() {
   const lbl  = $("yearProgressLabel");
   if (fill) fill.style.width = pct + "%";
   if (lbl)  lbl.textContent = `${year}년 ${pct}% 경과`;
+  // 루틴 업무 마감 알림
+  renderRoutineDueBanner(year, week);
+}
+
+/* ── 루틴 업무 이번 주 마감 여부 체크 ──────────────────────── */
+function getRoutineTasksDueThisWeek(year, week) {
+  const ws = weekStart(year, week);
+  const we = weekEnd(year, week);
+  const today = new Date();
+
+  return (S.tasks || []).filter((t) => {
+    if (!t.cycle || t.cycle === "매일") return t.cycle === "매일";
+    const day = t.cycle_day;
+
+    if (t.cycle === "매주") return true;
+
+    if (t.cycle === "매월" && day) {
+      // 해당 day가 이번 주 안에 포함되는지
+      return _dayInWeek(day, ws, we);
+    }
+    if (t.cycle === "분기별" && day) {
+      const m = today.getMonth() + 1; // 1-based
+      if (![1,4,7,10].includes(m)) return false;
+      return _dayInWeek(day, ws, we);
+    }
+    if (t.cycle === "반기별" && day) {
+      const m = today.getMonth() + 1;
+      if (![1,7].includes(m)) return false;
+      return _dayInWeek(day, ws, we);
+    }
+    if (t.cycle === "매년") {
+      // cycle_day만 있고 월 정보 없음 → 이번 주에 해당 일자가 있는지
+      if (!day) return false;
+      return _dayInWeek(day, ws, we);
+    }
+    return false;
+  });
+}
+
+function _dayInWeek(day, ws, we) {
+  // day(1~31)가 ws~we 사이 날짜에 해당하는지
+  for (let d = new Date(ws); d <= we; d = new Date(d.getTime() + 86400000)) {
+    if (d.getDate() === day) return true;
+  }
+  return false;
+}
+
+function renderRoutineDueBanner(year, week) {
+  const banner = $("routineDueBanner");
+  if (!banner) return;
+
+  const due = getRoutineTasksDueThisWeek(year, week);
+  if (!due.length) { banner.classList.add("hidden"); return; }
+
+  const we = weekEnd(year, week);
+  banner.classList.remove("hidden");
+  banner.innerHTML = `
+    <div class="routine-due-banner-head">
+      <div class="routine-due-banner-title">
+        🔔 이번 주에 처리해야 할 루틴 업무 ${due.length}건
+      </div>
+      <button class="routine-due-banner-close" id="routineBannerClose">✕</button>
+    </div>
+    <div class="routine-due-items">
+      ${due.map((t) => {
+        const cat1 = t.cat1 ? `<span style="font-weight:800">${esc(t.cat1)}</span> › ` : "";
+        const cat2 = esc(t.category || t.title || "");
+        const dayStr = t.cycle_day
+          ? `${t.cycle} ${t.cycle_day}일`
+          : t.cycle;
+        return `<div class="routine-due-item" data-id="${t.id}">
+          <span class="routine-due-item-label">${cat1}${cat2}</span>
+          <span class="routine-due-item-day">${dayStr}</span>
+          <button class="routine-due-item-add" data-id="${t.id}">+ 이번 주 추가</button>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+
+  $("routineBannerClose").addEventListener("click", () => banner.classList.add("hidden"));
+
+  banner.querySelectorAll(".routine-due-item-add").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("added")) return;
+      const task = S.tasks.find((t) => t.id === btn.dataset.id);
+      if (!task) return;
+      S.weekTasks.push({
+        text: task.category || task.title,
+        status: "in_progress", date: "",
+        cat1: task.cat1 || "", cat2: task.category || "",
+      });
+      renderWeekTasksList();
+      btn.textContent = "✓ 추가됨";
+      btn.classList.add("added");
+    });
+  });
 }
 
 /* 구형 보고서(last_results/next_plans)와 신형(tasks) 하위호환 헬퍼 */
@@ -2944,6 +3040,10 @@ async function renderMyTasks() {
     details.appendChild(inner);
     container.appendChild(details);
   }
+
+  // 루틴 마감 알림 배너 갱신 (tasks 로드 후 재계산)
+  const { year: dy, week: dw } = S.dash;
+  renderRoutineDueBanner(dy, dw);
 }
 
 /* ── 업무 정렬 (카테고리① → ② → 제목 내림차순) ─────────────── */
