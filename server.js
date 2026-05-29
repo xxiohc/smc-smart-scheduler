@@ -248,7 +248,7 @@ async function _processWriteQueue() {
 }
 
 // ── 초기 시드 멤버 데이터 (Vercel cold-start 등 빈 DB에서 복원) ──────────────
-// PIN 기본값 "1234" → hashPin("1234") = 12ca2bf6...
+// PIN 기본값 "0000" → hashPin("0000") = 12ca2bf6...
 // 최지석 PIN은 별도 설정됨 (41f5f6a6...)
 const SEED_MEMBERS = [
   { id:"4c157e4af00eb5b0", name:"김종국",  part:"경영지원팀",  role:"admin",   pin_hash:"12ca2bf6224a0ce696cf06af5d29e30bd1e13d6c17f45a55eb152da59061cc6c", birthday:"", joined:"2026-05-28", birthday_type:"solar" },
