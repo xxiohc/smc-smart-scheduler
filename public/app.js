@@ -775,19 +775,26 @@ function createWeekTaskItem(item, idx) {
           }
         });
 
-        // 세부업무 날짜 입력
+        // 세부업무 날짜 입력 (wrapper)
+        const dateWrap = document.createElement("div");
+        dateWrap.className = "wts-date-wrap";
+
+        const dateLbl = document.createElement("span");
+        dateLbl.className = "wts-date-label";
+        dateLbl.textContent = "목표일자";
+
         const dateIn = document.createElement("input");
         dateIn.type = "date";
         dateIn.className = "wts-date";
         dateIn.value = s.due_date || "";
         dateIn.title = "마감일";
-        // 지난 날짜 + 미완료면 빨간색 표시
+
+        // 라벨 표시 여부: 진행중 + 날짜 있을 때만
         const applyDateColor = (val, st) => {
-          if (val && st !== "done" && val < dateKey(new Date())) {
-            dateIn.classList.add("overdue");
-          } else {
-            dateIn.classList.remove("overdue");
-          }
+          const today = dateKey(new Date());
+          const isOverdue = val && st !== "done" && val < today;
+          dateIn.classList.toggle("overdue", isOverdue);
+          dateLbl.classList.toggle("visible", !!(val && st === "in_progress"));
         };
         applyDateColor(s.due_date || "", sStatus);
         dateIn.addEventListener("change", (e) => {
@@ -795,6 +802,9 @@ function createWeekTaskItem(item, idx) {
           const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
           applyDateColor(e.target.value, cur);
         });
+
+        dateWrap.appendChild(dateLbl);
+        dateWrap.appendChild(dateIn);
 
         const stBtn = document.createElement("button");
         stBtn.className = `sub-status-badge ${cls}`;
@@ -819,7 +829,7 @@ function createWeekTaskItem(item, idx) {
 
         row.appendChild(dot);
         row.appendChild(inp);
-        row.appendChild(dateIn);
+        row.appendChild(dateWrap);
         row.appendChild(stBtn);
         row.appendChild(delBtn);
         subList.appendChild(row);
