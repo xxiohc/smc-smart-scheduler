@@ -423,7 +423,8 @@ function getRoutineTasksDueThisWeek(year, week) {
   const today = new Date();
 
   return (S.tasks || []).filter((t) => {
-    if (!t.cycle || t.cycle === "매일") return t.cycle === "매일";
+    if (!t.cycle || t.cycle === "연중") return false; // 연중은 상시 진행 → 알림 불필요
+    if (t.cycle === "매일") return true;
     const day = t.cycle_day;
 
     if (t.cycle === "매주") return true;
@@ -2881,7 +2882,7 @@ function buildTaskCard(task, opts = {}) {
   // 주기 배지 — 텍스트 바로 옆에 배치
   if (task.cycle) {
     const cyBadge = document.createElement("span");
-    cyBadge.className = "routine-cycle-badge";
+    cyBadge.className = "routine-cycle-badge" + (task.cycle === "연중" ? " cycle-yeonjung" : "");
     let cyText = task.cycle + (task.cycle_day ? ` ${task.cycle_day}일` : "");
     if (task.holiday_adjust === "after")  cyText += " (휴일→다음)";
     if (task.holiday_adjust === "before") cyText += " (휴일→이전)";
@@ -3301,9 +3302,10 @@ function openTaskModal(id, modalOpts = {}) {
             <option value="분기별" ${task?.cycle==="분기별" ?"selected":""}>분기별 (3개월)</option>
             <option value="반기별" ${task?.cycle==="반기별" ?"selected":""}>반기별 (6개월)</option>
             <option value="매년"   ${task?.cycle==="매년"   ?"selected":""}>매년</option>
+            <option value="연중"   ${task?.cycle==="연중"   ?"selected":""}>연중 (TF·장기 프로젝트)</option>
           </select>
         </div>
-        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매일'&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'?'':'display:none'}">
+        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매일'&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'&&task.cycle!=='연중'?'':'display:none'}">
           <label>일 <span class="field-hint">(1~31)</span></label>
           <input id="tf-cycle-day" type="number" min="1" max="31"
             value="${task?.cycle_day||""}" placeholder="25" />
@@ -3494,7 +3496,7 @@ function openTaskModal(id, modalOpts = {}) {
   /* ── 주기 필드 토글 ─────────────────────────────── */
   $("tf-cycle")?.addEventListener("change", () => {
     const v = $("tf-cycle").value;
-    const showDay = v && v !== "매일" && v !== "매주" && v !== "분기별" && v !== "반기별";
+    const showDay = v && v !== "매일" && v !== "매주" && v !== "분기별" && v !== "반기별" && v !== "연중";
     $("tf-cycle-day-wrap").style.display = showDay ? "" : "none";
   });
 
