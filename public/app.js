@@ -2709,7 +2709,7 @@ function buildTaskCard(task, opts = {}) {
     item.appendChild(numEl);
   }
 
-  // cat1 › cat2 라벨 (메인 콘텐츠)
+  // cat1 › cat2 라벨 + 주기 배지 (왼쪽 그룹)
   const cat1 = task.cat1 || "";
   const cat2 = task.category || "";
   const label = document.createElement("div");
@@ -2722,9 +2722,7 @@ function buildTaskCard(task, opts = {}) {
   } else {
     label.innerHTML = `<span class="rl-empty">${esc(task.title || "업무")}</span>`;
   }
-  item.appendChild(label);
-
-  // 주기 배지 (cycle 필드)
+  // 주기 배지 — 텍스트 바로 옆에 배치
   if (task.cycle) {
     const cyBadge = document.createElement("span");
     cyBadge.className = "routine-cycle-badge";
@@ -2732,8 +2730,9 @@ function buildTaskCard(task, opts = {}) {
     if (task.holiday_adjust === "after")  cyText += " (휴일→다음)";
     if (task.holiday_adjust === "before") cyText += " (휴일→이전)";
     cyBadge.textContent = cyText;
-    item.appendChild(cyBadge);
+    label.appendChild(cyBadge);
   }
+  item.appendChild(label);
 
   // 반복업무 연결 아이콘
   if (isLinkedRecurring) {

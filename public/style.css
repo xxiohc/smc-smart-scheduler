@@ -1069,6 +1069,7 @@ select[id^="rf-"] { font-size: 13px; }
   padding: 2px 9px; border-radius: 20px;
   background: #fef3c7; color: #92400e;
   border: 1px solid #fde68a; white-space: nowrap;
+  margin-left: 10px;
 }
 
 /* 기존 호환 */
