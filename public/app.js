@@ -3467,23 +3467,32 @@ async function renderMyTasks() {
 
   // ── 선택 삭제 툴바 ──────────────────────────────────────────
   let selectMode = false;
+  let selectAll  = false;
   const selBar = document.createElement("div");
   selBar.className = "tasks-sel-bar";
   selBar.innerHTML = `
     <button class="btn-ghost small" id="toggleSelectMode">☐ 선택 삭제</button>
+    <button class="btn-ghost small hidden" id="toggleSelectAll">전체 선택</button>
     <span class="tasks-sel-count hidden" id="selCount"></span>
     <button class="btn-danger small hidden" id="deleteSelected">선택 삭제</button>
+    <button class="btn-danger small" id="deleteAllTasks">전체 삭제</button>
   `;
   container.appendChild(selBar);
 
-  const toggleSelBtn = selBar.querySelector("#toggleSelectMode");
-  const selCountEl   = selBar.querySelector("#selCount");
-  const delSelBtn    = selBar.querySelector("#deleteSelected");
+  const toggleSelBtn  = selBar.querySelector("#toggleSelectMode");
+  const toggleAllBtn  = selBar.querySelector("#toggleSelectAll");
+  const selCountEl    = selBar.querySelector("#selCount");
+  const delSelBtn     = selBar.querySelector("#deleteSelected");
+  const delAllBtn     = selBar.querySelector("#deleteAllTasks");
 
   function updateSelUI() {
     const checked = container.querySelectorAll(".task-sel-cb:checked");
+    const allCbs  = container.querySelectorAll(".task-sel-cb");
+    selectAll = allCbs.length > 0 && checked.length === allCbs.length;
     selCountEl.textContent = `${checked.length}건 선택됨`;
     selCountEl.classList.toggle("hidden", !selectMode);
+    toggleAllBtn.classList.toggle("hidden", !selectMode);
+    toggleAllBtn.textContent = selectAll ? "전체 해제" : "전체 선택";
     delSelBtn.classList.toggle("hidden", !selectMode || checked.length === 0);
     container.classList.toggle("tasks-select-mode", selectMode);
     toggleSelBtn.textContent = selectMode ? "✕ 취소" : "☐ 선택 삭제";
@@ -3492,6 +3501,16 @@ async function renderMyTasks() {
 
   toggleSelBtn.addEventListener("click", () => {
     selectMode = !selectMode;
+    if (!selectMode) {
+      container.querySelectorAll(".task-sel-cb").forEach((cb) => (cb.checked = false));
+    }
+    updateSelUI();
+  });
+
+  toggleAllBtn.addEventListener("click", () => {
+    const allCbs = container.querySelectorAll(".task-sel-cb");
+    const nowAll = [...allCbs].every((cb) => cb.checked);
+    allCbs.forEach((cb) => (cb.checked = !nowAll));
     updateSelUI();
   });
 
@@ -3504,6 +3523,17 @@ async function renderMyTasks() {
       try { await api("DELETE", `/api/tasks/${id}`); } catch {}
     }
     S.tasks = S.tasks.filter((t) => !ids.includes(t.id));
+    renderMyTasks();
+  });
+
+  delAllBtn.addEventListener("click", async () => {
+    const allIds = S.tasks.filter((t) => t.status !== "done").map((t) => t.id);
+    if (!allIds.length) return;
+    if (!confirm(`루틴 업무 전체 ${allIds.length}건을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    for (const id of allIds) {
+      try { await api("DELETE", `/api/tasks/${id}`); } catch {}
+    }
+    S.tasks = S.tasks.filter((t) => !allIds.includes(t.id));
     renderMyTasks();
   });
 
