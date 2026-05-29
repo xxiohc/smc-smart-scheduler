@@ -510,7 +510,7 @@ function renderRoutineDueBanner(year, week) {
     <div class="routine-due-items">
       ${due.map((t) => {
         const cat1 = t.cat1 ? `<span style="font-weight:800">${esc(t.cat1)}</span> › ` : "";
-        const cat2 = esc(t.category || t.title || "");
+        const cat2 = esc(t.cat2 || t.category || t.title || "");
         const dueDate = calcRoutineDueDate(t, year, week);
         // 날짜 표시: 원래 주기일 + 조정된 실제 날짜
         let dayStr = t.cycle
@@ -677,7 +677,7 @@ function updateRoutineBannerBtns() {
   banner.querySelectorAll(".routine-due-item-add").forEach((btn) => {
     const task = (S.tasks || []).find((t) => t.id === btn.dataset.id);
     if (!task) return;
-    const taskText = task.category || task.title || "";
+    const taskText = task.cat2 || task.category || task.title || "";
     const stillAdded = S.weekTasks.some((w) => w.text === taskText);
     if (stillAdded) {
       btn.textContent = "✓ 추가됨";
@@ -3075,7 +3075,7 @@ function buildTaskCard(task, opts = {}) {
 
   // cat1 › cat2 라벨 + 주기 배지 (왼쪽 그룹)
   const cat1 = task.cat1 || "";
-  const cat2 = task.category || "";
+  const cat2 = task.cat2 || task.category || "";
   const label = document.createElement("div");
   label.className = "routine-label";
   if (cat1 || cat2) {
@@ -3112,7 +3112,7 @@ function buildTaskCard(task, opts = {}) {
     toWeek.addEventListener("click", () => {
       S.weekTasks.push({
         text: task.title, status: "in_progress", date: task.due_date || "",
-        cat1: task.cat1 || "", cat2: task.category || "",
+        cat1: task.cat1 || "", cat2: task.cat2 || task.category || "",
         subtasks: (task.subtasks || []).filter((s) => s.text?.trim()),
       });
       renderWeekTasksList();
@@ -3168,7 +3168,7 @@ function appendTasksByHierarchy(container, tasks, opts = {}) {
   tasks.forEach((task) => {
     const c1 = task.cat1 || "";
     if (!byCat1[c1]) byCat1[c1] = {};
-    const c2 = task.category || "";
+    const c2 = task.cat2 || task.category || "";
     if (!byCat1[c1][c2]) byCat1[c1][c2] = [];
     byCat1[c1][c2].push(task);
   });
@@ -3278,7 +3278,7 @@ async function renderMyTasks() {
   activeTasks.sort((a, b) => {
     const i1a = cat1Order.indexOf(a.cat1 || ""), i1b = cat1Order.indexOf(b.cat1 || "");
     if (i1a !== i1b) { if (i1a < 0) return 1; if (i1b < 0) return -1; return i1a - i1b; }
-    const c2d = (a.category || "").localeCompare(b.category || "", "ko");
+    const c2d = (a.cat2 || a.category || "").localeCompare(b.cat2 || b.category || "", "ko");
     if (c2d) return c2d;
     return (a.title || "").localeCompare(b.title || "", "ko");
   });
@@ -3322,7 +3322,7 @@ function sortMyTasks() {
       if (i1b === -1) return -1;
       return i1b - i1a; // 내림차순
     }
-    const c2a = a.category || "", c2b = b.category || "";
+    const c2a = a.cat2 || a.category || "", c2b = b.cat2 || b.category || "";
     if (c2a !== c2b) return c2b.localeCompare(c2a, "ko"); // 내림차순
     return (b.title || "").localeCompare(a.title || "", "ko"); // 내림차순
   });
@@ -3466,7 +3466,7 @@ function openTaskModal(id, modalOpts = {}) {
   }
 
   const initCat1 = task?.cat1     || "";
-  const initCat2 = task?.category || "";
+  const initCat2 = task?.cat2 || task?.category || "";
 
   const weekdayOptsHtml = WEEKDAY_NAMES.map((n, i) => `<option value="${i}">${n}요일</option>`).join("");
   const modalTitle = isNew ? (targetMember ? `${esc(targetMember.name)}의 업무 추가` : "업무 추가") : "업무 수정";
@@ -3864,7 +3864,7 @@ function openTaskImportModal() {
         text: t.title,
         status: t.status === "done" ? "done" : "in_progress",
         date: t.due_date || "",
-        cat1: t.cat1 || "", cat2: t.category || "",
+        cat1: t.cat1 || "", cat2: t.cat2 || t.category || "",
         subtasks: (t.subtasks || []).filter((s) => s.text?.trim()),
       });
     });
