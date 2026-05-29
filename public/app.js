@@ -444,8 +444,14 @@ function getRoutineTasksDueThisWeek(year, week) {
       return _dayInWeek(day, ws, we);
     }
     if (t.cycle === "매년") {
-      // cycle_day만 있고 월 정보 없음 → 이번 주에 해당 일자가 있는지
       if (!day) return false;
+      // cycle_month가 있으면 그 월인지도 체크
+      if (t.cycle_month) {
+        const thisMonth = today.getMonth() + 1;
+        // 이번 주가 해당 월에 걸쳐 있는지
+        const wsMonth = ws.getMonth() + 1, weMonth = we.getMonth() + 1;
+        if (t.cycle_month !== wsMonth && t.cycle_month !== weMonth) return false;
+      }
       return _dayInWeek(day, ws, we);
     }
     return false;
@@ -507,7 +513,9 @@ function renderRoutineDueBanner(year, week) {
         const cat2 = esc(t.category || t.title || "");
         const dueDate = calcRoutineDueDate(t, year, week);
         // 날짜 표시: 원래 주기일 + 조정된 실제 날짜
-        let dayStr = t.cycle_day ? `${t.cycle} ${t.cycle_day}일` : t.cycle;
+        let dayStr = t.cycle
+          + (t.cycle === "매년" && t.cycle_month ? ` ${t.cycle_month}월` : "")
+          + (t.cycle_day ? ` ${t.cycle_day}일` : "");
         let dateTag = "";
         if (dueDate) {
           const d = new Date(dueDate);
@@ -2883,7 +2891,9 @@ function buildTaskCard(task, opts = {}) {
   if (task.cycle) {
     const cyBadge = document.createElement("span");
     cyBadge.className = "routine-cycle-badge" + (task.cycle === "연중" ? " cycle-yeonjung" : "");
-    let cyText = task.cycle + (task.cycle_day ? ` ${task.cycle_day}일` : "");
+    let cyText = task.cycle
+      + (task.cycle === "매년" && task.cycle_month ? ` ${task.cycle_month}월` : "")
+      + (task.cycle_day ? ` ${task.cycle_day}일` : "");
     if (task.holiday_adjust === "after")  cyText += " (휴일→다음)";
     if (task.holiday_adjust === "before") cyText += " (휴일→이전)";
     cyBadge.textContent = cyText;
@@ -3305,6 +3315,13 @@ function openTaskModal(id, modalOpts = {}) {
             <option value="연중"   ${task?.cycle==="연중"   ?"selected":""}>연중 (TF·장기 프로젝트)</option>
           </select>
         </div>
+        <div class="form-field" id="tf-cycle-month-wrap" style="${task?.cycle==="매년"?'':'display:none'}">
+          <label>월 <span class="field-hint">(1~12)</span></label>
+          <select id="tf-cycle-month">
+            <option value="">월 선택</option>
+            ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${task?.cycle_month===(i+1)?"selected":""}>${i+1}월</option>`).join("")}
+          </select>
+        </div>
         <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매일'&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'&&task.cycle!=='연중'?'':'display:none'}">
           <label>일 <span class="field-hint">(1~31)</span></label>
           <input id="tf-cycle-day" type="number" min="1" max="31"
@@ -3498,6 +3515,7 @@ function openTaskModal(id, modalOpts = {}) {
     const v = $("tf-cycle").value;
     const showDay = v && v !== "매일" && v !== "매주" && v !== "분기별" && v !== "반기별" && v !== "연중";
     $("tf-cycle-day-wrap").style.display = showDay ? "" : "none";
+    $("tf-cycle-month-wrap").style.display = v === "매년" ? "" : "none";
   });
 
   /* ── 반복 토글 ───────────────────────────────────── */
@@ -3545,6 +3563,7 @@ function openTaskModal(id, modalOpts = {}) {
 
     const cycleVal       = $("tf-cycle")?.value || "";
     const cycleDayVal    = cycleVal && $("tf-cycle-day").value ? Number($("tf-cycle-day").value) : null;
+    const cycleMonthVal  = cycleVal === "매년" && $("tf-cycle-month")?.value ? Number($("tf-cycle-month").value) : null;
     const holidayAdjust  = $("tf-holiday-adjust")?.value || "none";
     const body = {
       title,
@@ -3556,6 +3575,7 @@ function openTaskModal(id, modalOpts = {}) {
       subtasks:       validSubs,
       cycle:          cycleVal,
       cycle_day:      cycleDayVal,
+      cycle_month:    cycleMonthVal,
       holiday_adjust: holidayAdjust,
     };
     try {
