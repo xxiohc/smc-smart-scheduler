@@ -3482,9 +3482,9 @@ async function renderMyTasks() {
   selBar.className = "tasks-sel-bar";
   selBar.innerHTML = `
     <button class="btn-ghost small" id="toggleSelectMode">☐ 선택 삭제</button>
-    <button class="btn-ghost small hidden" id="toggleSelectAll">전체 선택</button>
-    <span class="tasks-sel-count hidden" id="selCount"></span>
-    <button class="btn-danger small hidden" id="deleteSelected">선택 삭제</button>
+    <button class="btn-ghost small" id="toggleSelectAll">전체 선택</button>
+    <span class="tasks-sel-count" id="selCount"></span>
+    <button class="btn-danger small" id="deleteSelected" style="display:none">선택 삭제</button>
     <button class="btn-danger small" id="deleteAllTasks">전체 삭제</button>
   `;
   container.appendChild(selBar);
@@ -3500,10 +3500,10 @@ async function renderMyTasks() {
     const allCbs  = container.querySelectorAll(".task-sel-cb");
     selectAll = allCbs.length > 0 && checked.length === allCbs.length;
     selCountEl.textContent = `${checked.length}건 선택됨`;
-    selCountEl.classList.toggle("hidden", !selectMode);
-    toggleAllBtn.classList.toggle("hidden", !selectMode);
     toggleAllBtn.textContent = selectAll ? "전체 해제" : "전체 선택";
-    delSelBtn.classList.toggle("hidden", !selectMode || checked.length === 0);
+    delSelBtn.style.display = (selectMode && checked.length > 0) ? "" : "none";
+    // selBar 자체에 클래스로 선택모드 상태 관리 (CSS로 show/hide)
+    selBar.classList.toggle("sel-active", selectMode);
     container.classList.toggle("tasks-select-mode", selectMode);
     toggleSelBtn.textContent = selectMode ? "✕ 취소" : "☐ 선택 삭제";
     toggleSelBtn.classList.toggle("active", selectMode);
