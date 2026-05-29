@@ -1458,95 +1458,6 @@ async function addEvent() {
   addEventFromPopup();
 }
 
-/* ── PDF 내보내기 ─────────────────────────────────────── */
-async function exportTeamPdf() {
-  const { year, week } = S.team;
-  const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
-  const memberMap = Object.fromEntries(S.members.map((m) => [m.id, m]));
-  const wLabel = weekLabel(year, week);
-  const statusLabels = { in_progress: "진행중", done: "완료", hold: "보류", partial: "일부완료", pending: "미완료" };
-  const legMap = { pending: "in_progress", partial: "hold" };
-
-  // Group by part
-  const PARTS = ["경영관리파트", "재무관리파트", "구매파트", "의공파트"];
-  const reportMap = Object.fromEntries(reports.map((r) => [r.member_id, r]));
-
-  let html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8"/>
-<title>경영지원팀 주간업무 현황 · ${wLabel}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; font-size: 10pt; color: #191f28; padding: 20mm 15mm; }
-  h1 { font-size: 16pt; font-weight: 700; margin-bottom: 4px; }
-  .meta { font-size: 9pt; color: #8b95a1; margin-bottom: 20px; }
-  .part-title { font-size: 11pt; font-weight: 700; background: #f5f7fa; padding: 6px 10px; margin: 16px 0 8px; border-left: 3px solid #3182f6; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  th { background: #edf0f3; padding: 6px 8px; font-size: 9pt; font-weight: 700; text-align: left; border: 1px solid #d0d6dc; }
-  td { padding: 6px 8px; font-size: 9pt; vertical-align: top; border: 1px solid #e5e8eb; line-height: 1.5; }
-  .name-cell { font-weight: 700; min-width: 60px; }
-  .status-done { color: #00a661; font-weight: 700; }
-  .status-partial { color: #f6a623; font-weight: 700; }
-  .status-pending { color: #8b95a1; }
-  .no-data { color: #c9cdd2; font-style: italic; }
-  .note-row td { background: #fafbfc; font-size: 8.5pt; color: #6b7684; }
-  @page { margin: 15mm; size: A4; }
-  @media print { body { padding: 0; } }
-</style>
-</head>
-<body>
-<h1>경영지원팀 주간업무 현황</h1>
-<div class="meta">${wLabel} &nbsp;·&nbsp; 출력일: ${new Date().toLocaleDateString("ko-KR")} &nbsp;·&nbsp; Samsung Medical Center</div>`;
-
-  let totalSubmit = 0, totalMembers = 0;
-  PARTS.forEach((part) => {
-    const members = S.members.filter((m) => m.part === part);
-    if (members.length === 0) return;
-    totalMembers += members.length;
-    html += `<div class="part-title">${part} (${members.length}명)</div>
-<table>
-<thead><tr>
-  <th style="width:60px">이름</th>
-  <th style="width:40px">상태</th>
-  <th>업무 현황</th>
-</tr></thead>
-<tbody>`;
-    members.forEach((m) => {
-      const r = reportMap[m.id];
-      if (r) totalSubmit++;
-      const rTasks = r ? getReportTasks(r) : [];
-      const tasksHtml = rTasks.length
-        ? rTasks.map((i) => {
-            const st = legMap[i.status] || i.status || "in_progress";
-            const sc = st === "done" ? "done" : st === "hold" ? "partial" : "pending";
-            const dateStr = i.date ? ` <span style="color:#8b95a1">(${i.date.slice(5).replace("-","/")})</span>` : "";
-            return `<div class="status-${sc}">• [${statusLabels[st]}] ${esc(i.text)}${dateStr}</div>`;
-          }).join("") : `<span class="no-data">미입력</span>`;
-      html += `<tr>
-  <td class="name-cell">${esc(m.name)}</td>
-  <td style="text-align:center">${r ? '<span style="color:#00a661;font-weight:700">✓</span>' : '<span style="color:#f04452">✗</span>'}</td>
-  <td>${tasksHtml}</td>
-</tr>`;
-      if (r?.note) {
-        html += `<tr class="note-row"><td colspan="3">📌 비고: ${esc(r.note)}</td></tr>`;
-      }
-    });
-    html += `</tbody></table>`;
-  });
-
-  html += `<div style="margin-top:20px;padding:10px;background:#f5f7fa;border-radius:6px;font-size:9pt;color:#6b7684">
-총 ${totalMembers}명 중 <strong>${totalSubmit}명</strong> 입력 완료
-</div></body></html>`;
-
-  const win = window.open("", "_blank");
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 600);
-}
-
 /* ── Archive ──────────────────────────────────────────── */
 function renderArchive() {
   const yearSel = $("archiveYear");
@@ -3745,7 +3656,6 @@ function wireEvents() {
   $("headerBrand")?.addEventListener("click", () => switchTab("dashboard"));
 
   $("teamRefreshBtn").addEventListener("click", () => renderTeam());
-  $("exportPdfBtn").addEventListener("click", exportTeamPdf);
 
   // Team week nav
   $("teamPrevWeek").addEventListener("click", () => {

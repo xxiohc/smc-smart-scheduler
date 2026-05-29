@@ -1007,12 +1007,14 @@ select[id^="rf-"] { font-size: 13px; }
 
 /* ── My Tasks (personal backlog) ─────────────────────────── */
 .mytasks-section {
-  background: var(--card); border-radius: var(--radius);
+  background: #f5f7f0; border-radius: var(--radius);
   box-shadow: var(--shadow-sm); margin-top: 20px; overflow: hidden;
+  border: 1px solid #e2e8d8;
 }
 .mytasks-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid #d4dcca; gap: 10px; flex-wrap: wrap;
+  background: #ecf0e3;
 }
 .mytasks-title { font-size: 14px; font-weight: 700; color: var(--ink); }
 .btn-primary.small { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
@@ -1025,7 +1027,7 @@ select[id^="rf-"] { font-size: 13px; }
 }
 .task-status-filter button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
 
-.mytasks-list { display: flex; flex-direction: column; }
+.mytasks-list { display: flex; flex-direction: column; background: #f5f7f0; }
 
 /* ── 루틴 업무 카드 (한 줄 compact) ─────────────────────── */
 .routine-card {
@@ -1035,9 +1037,9 @@ select[id^="rf-"] { font-size: 13px; }
   transition: background 0.1s; min-height: 46px;
 }
 .routine-card:last-child { border-bottom: none; }
-.routine-card:hover { background: #f8faff; }
+.routine-card:hover { background: #edf0e5; }
 .routine-card.done-task { opacity: 0.45; }
-.routine-card.this-week-task { background: #eef6ff; }
+.routine-card.this-week-task { background: #e6f0d8; }
 /* cat1 › cat2 라벨 */
 .routine-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
 .rl-cat1 { font-size: 15px; font-weight: 700; color: var(--ink); }
