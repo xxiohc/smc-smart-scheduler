@@ -1820,7 +1820,7 @@ async function doArchiveSearch() {
                 return `<div class="archive-item ${st}"><span class="archive-item-dot"></span><span>[${sLabel[st]}] ${esc(i.text)}${dt}</span></div>`;
               }).join("");
           row.innerHTML = `
-            <div class="archive-member-name">${esc(r.member?.name || "?")} <span class="archive-member-part">${esc(r.member?.part || "")}</span></div>
+            <div class="archive-member-name" data-name="${esc(r.member?.name || "?")}">${esc(r.member?.name || "?")} <span class="archive-member-part">${esc(r.member?.part || "")}</span></div>
             <div class="archive-items">${itemHtml}</div>
             ${r.note ? `<div class="archive-note">📌 ${esc(r.note)}</div>` : ""}
           `;
@@ -1953,7 +1953,7 @@ async function doArchiveSearch() {
           const canFeedback = S.member.role === "admin" || S.member.role === "leader";
           const periodVal = view === "monthly" ? Number($("archiveMonth").value) : Number($("archiveQuarter").value);
           row.innerHTML = `
-            <div class="archive-member-name" style="display:flex;align-items:center;justify-content:space-between">
+            <div class="archive-member-name" data-name="${esc(m.name)}" style="display:flex;align-items:center;justify-content:space-between">
               <span>${esc(m.name)} <span class="archive-member-part">${esc(m.part)}</span></span>
               ${canFeedback ? `<button class="btn-ghost small archive-feedback-btn" data-mid="${m.id}" data-name="${esc(m.name)}" data-ptype="${view}" data-pval="${periodVal}" data-year="${year}">💬 피드백</button>` : ""}
             </div>
@@ -2030,7 +2030,7 @@ function exportArchivePdf() {
         if (sibling.classList.contains("archive-member-row")) {
           const nameEl = sibling.querySelector(".archive-member-name");
           const partSpan = nameEl?.querySelector(".archive-member-part");
-          const name = nameEl ? (nameEl.firstChild?.textContent || "").trim() : "?";
+          const name = nameEl?.dataset?.name || (nameEl ? (nameEl.firstChild?.textContent || "").trim() : "?") || "?";
           const pname = partSpan?.textContent || "";
           const items = sibling.querySelectorAll(".archive-item");
           const noteEl = sibling.querySelector(".archive-note");
@@ -2058,7 +2058,7 @@ function exportArchivePdf() {
     block.querySelectorAll(":scope > .archive-week-body > .archive-member-row").forEach((row) => {
       const nameEl = row.querySelector(".archive-member-name");
       const partSpan = nameEl?.querySelector(".archive-member-part");
-      const name = (nameEl?.firstChild?.textContent || "").trim();
+      const name = nameEl?.dataset?.name || (nameEl ? (nameEl.firstChild?.textContent || "").trim() : "?") || "?";
       const pname = partSpan?.textContent || "";
       const items = row.querySelectorAll(".archive-item");
       const noteEl = row.querySelector(".archive-note");
