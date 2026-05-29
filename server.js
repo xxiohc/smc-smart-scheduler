@@ -981,6 +981,26 @@ async function handleDeleteEvent(req, res, id) {
   json(res, { ok: true });
 }
 
+async function handleGetCompilation(req, res, url) {
+  const db = await loadDb();
+  const week = url.searchParams.get("week") || "";
+  if (!db.compilation) db.compilation = {};
+  json(res, { week, items: db.compilation[week] || [] });
+}
+
+async function handleSaveCompilation(req, res) {
+  const memberId = getMemberFromRequest(req);
+  if (!memberId) return err(res, "인증이 필요합니다.", 401);
+  const body = await parseBody(req);
+  const { week, items } = body;
+  if (!week) return err(res, "week 필드는 필수입니다.");
+  const db = await loadDb();
+  if (!db.compilation) db.compilation = {};
+  db.compilation[week] = items || [];
+  await saveDb(db);
+  json(res, { ok: true });
+}
+
 async function handleGetCategories(req, res) {
   const db = await loadDb();
   json(res, db.categories || {});
@@ -1098,6 +1118,9 @@ async function handler(req, res) {
       if (method === "PUT") return handleUpdateTask(req, res, taskMatch[1]);
       if (method === "DELETE") return handleDeleteTask(req, res, taskMatch[1]);
     }
+
+    if (path === "/api/compilation" && method === "GET") return handleGetCompilation(req, res, url);
+    if (path === "/api/compilation" && method === "PUT") return handleSaveCompilation(req, res);
 
     if (path === "/api/categories" && method === "GET") return handleGetCategories(req, res);
     if (path === "/api/categories" && method === "PUT") return handleUpdateCategories(req, res);

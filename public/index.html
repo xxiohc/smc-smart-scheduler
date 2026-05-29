@@ -98,15 +98,19 @@
       </button>
       <button class="tab-btn" data-tab="team">
         <svg viewBox="0 0 20 20"><path d="M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm8 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM9 13c0-1.1.27-2.13.74-3.04A5 5 0 0 0 2 14.5V16h7v-3zm3 0v3h7v-1.5a5 5 0 0 0-7.74-4.17C11.72 10.85 12 11.9 12 13z" fill="currentColor"/></svg>
-        팀 현황
-      </button>
-      <button class="tab-btn" data-tab="calendar">
-        <svg viewBox="0 0 20 20"><path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 1 0-2 0v1H7V3a1 1 0 0 0-1-1zm0 5h8a1 1 0 1 1 0 2H6a1 1 0 1 1 0-2z" fill="currentColor"/></svg>
-        팀 캘린더
+        제출 현황
       </button>
       <button class="tab-btn" data-tab="archive">
         <svg viewBox="0 0 20 20"><path d="M4 3a1 1 0 0 0 0 2h12a1 1 0 0 0 0-2H4zM2 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7zm5 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7z" fill="currentColor"/></svg>
         업무 아카이빙
+      </button>
+      <button class="tab-btn" data-tab="compilation">
+        <svg viewBox="0 0 20 20"><path d="M9 2a1 1 0 0 0 0 2h2a1 1 0 1 0 0-2H9zm4 0a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-1zm-1 8a1 1 0 1 0-2 0v3a1 1 0 1 0 2 0v-3zM9 9a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V9z" fill="currentColor"/></svg>
+        주차별 취합
+      </button>
+      <button class="tab-btn" data-tab="calendar">
+        <svg viewBox="0 0 20 20"><path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 1 0-2 0v1H7V3a1 1 0 0 0-1-1zm0 5h8a1 1 0 1 1 0 2H6a1 1 0 1 1 0-2z" fill="currentColor"/></svg>
+        팀 캘린더
       </button>
       <button class="tab-btn tab-admin hidden" data-tab="admin">
         <svg viewBox="0 0 20 20"><path d="M10 2a1 1 0 0 1 .894.553l2.382 4.764 5.27.768a1 1 0 0 1 .555 1.705l-3.815 3.72.901 5.255a1 1 0 0 1-1.452 1.054L10 17.347l-4.735 2.472a1 1 0 0 1-1.452-1.054l.9-5.255-3.814-3.72a1 1 0 0 1 .555-1.705l5.27-.768L9.105 2.553A1 1 0 0 1 10 2z" fill="currentColor"/></svg>
@@ -201,7 +205,7 @@
       <div class="shell">
         <div class="page-header">
           <div>
-            <h2 class="page-title">팀 현황</h2>
+            <h2 class="page-title">제출 현황</h2>
             <p class="page-desc">팀원별 주간 업무 현황을 확인합니다.</p>
           </div>
           <div class="week-nav">
@@ -220,6 +224,28 @@
 
         <!-- 팀 현황 그리드 -->
         <div id="teamGrid" class="team-grid"></div>
+      </div>
+    </section>
+
+    <!-- 주차별 취합 탭 -->
+    <section id="tab-compilation" class="tab-content hidden">
+      <div class="shell">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">주차별 취합</h2>
+            <p class="page-desc">주간업무 취합본을 편집하고 PDF로 내보냅니다.</p>
+          </div>
+          <div class="compilation-header-right">
+            <div class="week-nav">
+              <button id="compPrevWeek" class="btn-ghost icon-btn">&#8592;</button>
+              <button id="compThisWeek" class="btn-ghost small">이번 주</button>
+              <button id="compNextWeek" class="btn-ghost icon-btn">&#8594;</button>
+            </div>
+            <span id="compWeekLabel" class="week-label"></span>
+            <button id="compPdfBtn" class="btn-ghost">&#128196; PDF 내보내기</button>
+          </div>
+        </div>
+        <div id="compilationResult" class="compilation-result"></div>
       </div>
     </section>
 
@@ -303,9 +329,17 @@
           </select>
           <button id="archiveSearch" class="btn-primary">조회</button>
           <button id="archivePdfBtn" class="btn-ghost hidden">📄 PDF</button>
+          <button id="archiveCompileToggle" class="btn-ghost">&#9745; 취합 편집</button>
           <label class="archive-done-only-label">
             <input id="archiveDoneOnly" type="checkbox" /> 완료만 보기
           </label>
+        </div>
+
+        <div id="archiveCompileBar" class="archive-compile-bar hidden">
+          <span id="archiveCompileCount">0개 선택됨</span>
+          <select id="archiveCompileWeekSel"></select>
+          <button id="archiveCompileAdd" class="btn-primary small">취합본에 추가</button>
+          <button id="archiveCompileClear" class="btn-ghost small">선택 해제</button>
         </div>
 
         <div id="archiveResult" class="archive-result"></div>

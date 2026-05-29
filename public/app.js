@@ -165,6 +165,7 @@ const S = {
   dash: { year: 0, week: 0 },
   team: { year: 0, week: 0, part: "전체" },
   cal: { year: 0, month: 0 },
+  comp: { year: 0, week: 0 },
   weekTasks: [],          // 이번 주 업무 통합 리스트 (구 lastResults+nextPlans)
   recurring: [],
   tasks: [],
@@ -355,6 +356,7 @@ function enterApp() {
   const { year, week } = todayYW();
   S.dash = { year, week };
   S.team = { year, week, part: "전체" };
+  S.comp = { year, week };
   const now = new Date();
   S.cal = { year: now.getFullYear(), month: now.getMonth() + 1 };
   S.calSearchMemberId = null;
@@ -389,6 +391,10 @@ function switchTab(tab) {
   else if (tab === "team") renderTeam();
   else if (tab === "calendar") renderCalendar();
   else if (tab === "archive") renderArchive();
+  else if (tab === "compilation") {
+    if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
+    renderCompilation();
+  }
   else if (tab === "admin") openAdminTab();
 }
 
@@ -2030,7 +2036,18 @@ async function doArchiveSearch() {
             : rTasks.map((i) => {
                 const st = _WEEK_LEGACY[i.status] || i.status || "in_progress";
                 const dt = i.date ? ` <span class="archive-task-date">(${i.date.slice(5).replace("-","/")})</span>` : "";
-                return `<div class="archive-item ${st}"><span class="archive-item-dot"></span><span>[${sLabel[st]}] ${esc(i.text)}${dt}</span></div>`;
+                const itemJson = JSON.stringify({
+                  memberName: r.member?.name || "?",
+                  memberPart: r.member?.part || "",
+                  cat1: i.cat1 || "",
+                  cat2: i.cat2 || i.category || "",
+                  text: i.text || "",
+                  status: st,
+                  date: i.date || "",
+                  reportYear: y,
+                  reportWeek: w,
+                }).replace(/"/g, "&quot;");
+                return `<div class="archive-item ${st}" data-item="${itemJson}"><span class="archive-item-dot"></span><span class="archive-item-text">[${sLabel[st]}] ${esc(i.text)}${dt}</span></div>`;
               }).join("");
           row.innerHTML = `
             <div class="archive-member-name" data-name="${esc(r.member?.name || "?")}">${esc(r.member?.name || "?")} <span class="archive-member-part">${esc(r.member?.part || "")}</span></div>
@@ -4466,6 +4483,107 @@ function wireEvents() {
   $("archiveDoneOnly").addEventListener("change", doArchiveSearch);
   $("archivePdfBtn").addEventListener("click", exportArchivePdf);
 
+  // 취합 편집 토글
+  $("archiveCompileToggle").addEventListener("click", () => {
+    const bar = $("archiveCompileBar");
+    const active = bar.classList.toggle("hidden") === false;
+    $("archiveCompileToggle").classList.toggle("active", active);
+    if (active) {
+      document.querySelectorAll("#archiveResult .archive-item[data-item]").forEach((el) => {
+        if (!el.querySelector(".compile-cb")) {
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.className = "compile-cb";
+          cb.addEventListener("change", updateCompileCount);
+          el.prepend(cb);
+        }
+      });
+      populateCompileWeekSelect();
+    } else {
+      document.querySelectorAll(".compile-cb").forEach((cb) => cb.remove());
+    }
+    updateCompileCount();
+  });
+
+  $("archiveCompileClear").addEventListener("click", () => {
+    document.querySelectorAll(".compile-cb:checked").forEach((cb) => (cb.checked = false));
+    updateCompileCount();
+  });
+
+  $("archiveCompileAdd").addEventListener("click", async () => {
+    const checked = [...document.querySelectorAll(".compile-cb:checked")];
+    if (!checked.length) return;
+    const weekKey = $("archiveCompileWeekSel").value;
+    const newItems = checked.map((cb) => {
+      const data = JSON.parse(cb.closest(".archive-item").dataset.item);
+      return { ...data, id: genLocalId() };
+    });
+    const existing = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
+    const merged = [...existing];
+    newItems.forEach((item) => {
+      if (!merged.some((e) => e.text === item.text && e.memberName === item.memberName)) {
+        merged.push(item);
+      }
+    });
+    await api("PUT", "/api/compilation", { week: weekKey, items: merged });
+    showToast(`&#10003; ${newItems.length}개 항목이 취합본(${weekKey})에 추가됐습니다.`);
+    checked.forEach((cb) => (cb.checked = false));
+    updateCompileCount();
+  });
+
+  // 주차별 취합 네비게이션
+  $("compPrevWeek").addEventListener("click", () => {
+    let { year, week } = S.comp;
+    week--;
+    if (week <= 0) { year--; week = 52; }
+    S.comp = { year, week };
+    renderCompilation();
+  });
+  $("compNextWeek").addEventListener("click", () => {
+    let { year, week } = S.comp;
+    week++;
+    if (week > 52) { year++; week = 1; }
+    S.comp = { year, week };
+    renderCompilation();
+  });
+  $("compThisWeek").addEventListener("click", () => {
+    S.comp = { year: S.dash.year, week: S.dash.week };
+    renderCompilation();
+  });
+
+  // PDF 내보내기
+  $("compPdfBtn").addEventListener("click", () => {
+    const { year, week } = S.comp;
+    const title = `경영지원팀 주간업무 취합본 — ${weekLabel(year, week)}`;
+    const content = document.getElementById("compilationResult").innerHTML;
+    const printWin = window.open("", "_blank", "width=900,height=700");
+    printWin.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8"/>
+      <title>${title}</title>
+      <style>
+        body { font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; margin: 30px; color: #111827; }
+        h1 { font-size: 18px; margin-bottom: 6px; }
+        .comp-cat1-section { margin-bottom: 18px; }
+        .comp-cat1-head { font-size: 15px; font-weight: 800; border-bottom: 2px solid #3182f6; padding-bottom: 4px; margin-bottom: 8px; color: #1b64da; }
+        .comp-cat2-head { font-size: 13px; font-weight: 700; color: #374151; margin: 8px 0 4px 8px; }
+        .comp-item-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 16px; }
+        .comp-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #3182f6; flex-shrink: 0; }
+        .comp-item-text { flex: 1; font-size: 13px; }
+        .comp-item-meta { font-size: 11px; color: #6b7280; }
+        .comp-item-date { font-size: 11px; color: #6b7280; margin-left: 4px; }
+        .comp-item-del, .empty-state { display: none; }
+        .empty-icon { display: none; }
+      </style>
+    </head><body>
+      <h1>${title}</h1>
+      <hr style="margin-bottom:20px"/>
+      ${content}
+    </body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); }, 500);
+  });
+
   // 받은 피드백 토글
   $("feedbacksToggleBtn")?.addEventListener("click", () => {
     const list = $("myFeedbacksList");
@@ -4484,6 +4602,116 @@ function wireEvents() {
   // Modal close on overlay click
   $("modal").addEventListener("click", (e) => {
     if (e.target === $("modal")) closeModal();
+  });
+}
+
+/* ── 주차별 취합 ───────────────────────────────────────── */
+function updateCompileCount() {
+  const n = document.querySelectorAll(".compile-cb:checked").length;
+  $("archiveCompileCount").textContent = `${n}개 선택됨`;
+  $("archiveCompileAdd").disabled = n === 0;
+}
+
+function populateCompileWeekSelect() {
+  const sel = $("archiveCompileWeekSel");
+  sel.innerHTML = "";
+  const { year: cy, week: cw } = S.dash;
+  for (let i = 0; i < 8; i++) {
+    let y = cy, w = cw - i;
+    while (w <= 0) { y--; w += 52; }
+    const key = `${y}-W${String(w).padStart(2, "0")}`;
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = weekLabel(y, w);
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+async function renderCompilation() {
+  if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
+  const { year, week } = S.comp;
+  $("compWeekLabel").textContent = weekLabel(year, week);
+
+  const result = $("compilationResult");
+  result.innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  let data;
+  try {
+    const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+    data = await api("GET", `/api/compilation?week=${weekKey}`);
+  } catch {
+    result.innerHTML = '<div class="empty-state">데이터를 불러올 수 없습니다.</div>';
+    return;
+  }
+
+  const items = data.items || [];
+
+  if (items.length === 0) {
+    result.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128203;</div>취합된 항목이 없습니다.<br><span style="font-size:13px;color:var(--muted)">업무 아카이빙에서 항목을 선택해 취합본에 추가하세요.</span></div>`;
+    return;
+  }
+
+  result.innerHTML = "";
+
+  // cat1별 그룹
+  const byCat1 = {};
+  items.forEach((item) => {
+    const c = item.cat1 || "기타";
+    if (!byCat1[c]) byCat1[c] = [];
+    byCat1[c].push(item);
+  });
+
+  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+
+  Object.entries(byCat1).forEach(([cat1, catItems]) => {
+    const section = document.createElement("div");
+    section.className = "comp-cat1-section";
+
+    const h = document.createElement("div");
+    h.className = "comp-cat1-head";
+    h.textContent = cat1;
+    section.appendChild(h);
+
+    // cat2 그룹
+    const byCat2 = {};
+    catItems.forEach((item) => {
+      const c2 = item.cat2 || "";
+      if (!byCat2[c2]) byCat2[c2] = [];
+      byCat2[c2].push(item);
+    });
+
+    Object.entries(byCat2).forEach(([cat2, c2Items]) => {
+      if (cat2) {
+        const c2h = document.createElement("div");
+        c2h.className = "comp-cat2-head";
+        c2h.textContent = cat2;
+        section.appendChild(c2h);
+      }
+
+      c2Items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "comp-item-row";
+        const stCls = item.status === "done" ? "sub-done" : item.status === "hold" ? "sub-wait" : "sub-prog";
+        const dateStr = item.date ? `<span class="comp-item-date">(${item.date.slice(5).replace("-", "/")})</span>` : "";
+        row.innerHTML = `
+          <span class="comp-item-dot ${stCls}"></span>
+          <span class="comp-item-text">${esc(item.text)}${dateStr}</span>
+          <span class="comp-item-meta">${esc(item.memberName)} · ${sLabel[item.status] || item.status}</span>
+          <button class="comp-item-del" data-id="${item.id}" title="삭제">✕</button>
+        `;
+        row.querySelector(".comp-item-del").addEventListener("click", async () => {
+          const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+          const cur = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
+          const updated = cur.filter((e) => e.id !== item.id);
+          await api("PUT", "/api/compilation", { week: weekKey, items: updated });
+          renderCompilation();
+        });
+        section.appendChild(row);
+      });
+    });
+
+    result.appendChild(section);
   });
 }
 

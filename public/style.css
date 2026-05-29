@@ -1856,6 +1856,37 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 
+/* ── 아카이빙 취합 편집 ──────────────────────────────────── */
+.archive-compile-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--primary-soft); border: 1px solid var(--primary);
+  border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px;
+}
+.archive-compile-bar #archiveCompileCount { font-size: 13px; font-weight: 600; color: var(--primary); }
+.archive-compile-bar #archiveCompileWeekSel { font-size: 13px; }
+.compile-cb { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--primary); margin-right: 6px; vertical-align: middle; }
+.archive-item { cursor: default; }
+#archiveResult .archive-item[data-item] { cursor: pointer; }
+#archiveResult .archive-item[data-item]:has(.compile-cb:checked) { background: #dbeafe; border-radius: 4px; }
+
+/* ── 주차별 취합 탭 ─────────────────────────────────────── */
+.compilation-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.compilation-result { margin-top: 16px; }
+.comp-cat1-section { background: var(--surface); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+.comp-cat1-head { font-size: 15px; font-weight: 800; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 6px; margin-bottom: 10px; }
+.comp-cat2-head { font-size: 13px; font-weight: 700; color: var(--subtle); margin: 10px 0 4px 4px; }
+.comp-item-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px 5px 12px; border-radius: 6px; }
+.comp-item-row:hover { background: var(--bg); }
+.comp-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.comp-item-dot.sub-prog { background: var(--primary); }
+.comp-item-dot.sub-done { background: var(--good); }
+.comp-item-dot.sub-wait { background: var(--yellow); }
+.comp-item-text { flex: 1; font-size: 13px; color: var(--ink); }
+.comp-item-date { font-size: 11px; color: var(--muted); margin-left: 4px; }
+.comp-item-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.comp-item-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+.comp-item-del:hover { color: var(--warn); background: #fee2e2; }
+
 /* ═══════════════════════════════════════════════════════════
    FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)
    원본값은 주석으로 보존. 되돌리려면 이 블록 전체 제거.
