@@ -3133,6 +3133,7 @@ function openTaskModal(id, modalOpts = {}) {
           <label>주기 <span class="field-hint">(루틴 업무 주기)</span></label>
           <select id="tf-cycle">
             <option value="">없음</option>
+            <option value="매일"   ${task?.cycle==="매일"   ?"selected":""}>매일</option>
             <option value="매주"   ${task?.cycle==="매주"   ?"selected":""}>매주</option>
             <option value="매월"   ${task?.cycle==="매월"   ?"selected":""}>매월</option>
             <option value="분기별" ${task?.cycle==="분기별" ?"selected":""}>분기별 (3개월)</option>
@@ -3140,7 +3141,7 @@ function openTaskModal(id, modalOpts = {}) {
             <option value="매년"   ${task?.cycle==="매년"   ?"selected":""}>매년</option>
           </select>
         </div>
-        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'?'':'display:none'}">
+        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매일'&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'?'':'display:none'}">
           <label>일 <span class="field-hint">(1~31)</span></label>
           <input id="tf-cycle-day" type="number" min="1" max="31"
             value="${task?.cycle_day||""}" placeholder="25" />
@@ -3322,7 +3323,7 @@ function openTaskModal(id, modalOpts = {}) {
   /* ── 주기 필드 토글 ─────────────────────────────── */
   $("tf-cycle")?.addEventListener("change", () => {
     const v = $("tf-cycle").value;
-    const showDay = v && v !== "매주" && v !== "분기별" && v !== "반기별";
+    const showDay = v && v !== "매일" && v !== "매주" && v !== "분기별" && v !== "반기별";
     $("tf-cycle-day-wrap").style.display = showDay ? "" : "none";
   });
 
