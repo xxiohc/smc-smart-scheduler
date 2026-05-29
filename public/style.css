@@ -247,6 +247,9 @@ input, select, textarea { outline: none; }
   font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap;
 }
 .week-nav { display: flex; align-items: center; gap: 8px; }
+.dash-title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dash-title-row .page-title { margin-bottom: 0; }
+.inline-week-nav .btn-ghost { font-size: 13px; padding: 4px 10px; height: 30px; }
 .week-label { font-size: 14px; font-weight: 600; color: var(--ink); min-width: 120px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .week-date-range { font-size: 11px; font-weight: 400; color: var(--subtle); letter-spacing: 0; }
 
