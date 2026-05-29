@@ -93,8 +93,18 @@ const mime = {
   ".webmanifest": "application/manifest+json",
 };
 
-// In-memory session store: token → { memberId, expiresAt }
-const sessions = new Map();
+// ── JWT 기반 무상태 세션 (Vercel 멀티-인스턴스 안전) ────────────────────────
+// 인메모리 Map 대신 서명된 JWT 사용 → 어떤 인스턴스에서도 검증 가능
+const JWT_SECRET = process.env.JWT_SECRET || "smc-scheduler-jwt-2026-secret";
+const JWT_TTL = 8 * 3600; // 8시간
+
+function _b64url(data) {
+  const s = typeof data === "string" ? data : JSON.stringify(data);
+  return Buffer.from(s).toString("base64").replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+}
+function _b64urlDec(s) {
+  return Buffer.from(s.replace(/-/g,"+").replace(/_/g,"/"), "base64").toString("utf-8");
+}
 
 // ── 동시 접속 트래킹 ──────────────────────────────────────────────────────────
 let activeApiConnections = 0;
@@ -159,21 +169,33 @@ async function _ghLoadDb() {
 
 async function _ghSaveDb(db) {
   const snapshot = JSON.parse(JSON.stringify(db));
-  // 캐시 즉시 갱신 (다음 읽기에서 최신 반영)
+  // 캐시 즉시 갱신
   _gh.cache = snapshot;
   _gh.cacheAt = Date.now();
-  // SHA 없으면 먼저 조회
-  if (!_gh.cacheSha) {
-    const r = await _ghFetch("/contents/db.json?ref=db");
-    if (r.ok) { const m = await r.json(); _gh.cacheSha = m.sha; }
+
+  const _doWrite = async () => {
+    // SHA 모르면 먼저 조회
+    if (!_gh.cacheSha) {
+      const r = await _ghFetch("/contents/db.json?ref=db");
+      if (r.ok) { const m = await r.json(); _gh.cacheSha = m.sha; }
+    }
+    return _ghFetch("/contents/db.json", {
+      method: "PUT",
+      body: JSON.stringify({
+        message: "db update [skip ci]",
+        content: Buffer.from(JSON.stringify(snapshot)).toString("base64"),
+        branch: "db",
+        sha: _gh.cacheSha || undefined,
+      }),
+    });
+  };
+
+  let res = await _doWrite();
+  if (res.status === 409) {
+    // SHA 충돌 → SHA 초기화 후 1회 재시도
+    _gh.cacheSha = null;
+    res = await _doWrite();
   }
-  const body = JSON.stringify({
-    message: "db update [skip ci]",
-    content: Buffer.from(JSON.stringify(snapshot)).toString("base64"),
-    branch: "db",
-    sha: _gh.cacheSha || undefined,
-  });
-  const res = await _ghFetch("/contents/db.json", { method: "PUT", body });
   if (res.ok) {
     const m = await res.json();
     _gh.cacheSha = m.content?.sha || _gh.cacheSha;
@@ -256,41 +278,52 @@ const SEED_MEMBERS = [
 
 async function ensureDefaultData() {
   const db = await loadDb();
-  if (!db.members) db.members = [];
-  if (!db.reports) db.reports = [];
-  if (!db.events) db.events = [];
-  if (!db.recurring) db.recurring = [];
-  if (!db.tasks) db.tasks = [];
-  if (!db.feedbacks) db.feedbacks = [];
-  // 빈 DB면 시드 멤버로 초기화 (Vercel cold-start 포함)
+  let dirty = false;
+  if (!db.members)  { db.members  = []; dirty = true; }
+  if (!db.reports)  { db.reports  = []; dirty = true; }
+  if (!db.events)   { db.events   = []; dirty = true; }
+  if (!db.recurring){ db.recurring= []; dirty = true; }
+  if (!db.tasks)    { db.tasks    = []; dirty = true; }
+  if (!db.feedbacks){ db.feedbacks= []; dirty = true; }
+  // 빈 DB면 시드 멤버로 초기화
   if (db.members.length === 0) {
     db.members = SEED_MEMBERS.map(m => ({ ...m }));
+    dirty = true;
   } else {
-    // 최지석 role 보정 (기존 DB에서도 admin 유지)
+    // 최지석 role 보정
     const jiseok = db.members.find(m => m.id === "b7d77c1d444ecb10");
-    if (jiseok && jiseok.role !== "admin") jiseok.role = "admin";
+    if (jiseok && jiseok.role !== "admin") { jiseok.role = "admin"; dirty = true; }
   }
-  await saveDb(db);
+  if (dirty) await saveDb(db); // 변경된 경우에만 저장 (불필요한 GitHub write 방지)
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
 function createToken(memberId) {
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { memberId, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
-  return token;
+  const hdr = _b64url({ alg: "HS256", typ: "JWT" });
+  const pay = _b64url({ sub: memberId, exp: Math.floor(Date.now() / 1000) + JWT_TTL });
+  const sig = crypto.createHmac("sha256", JWT_SECRET)
+    .update(`${hdr}.${pay}`).digest("base64")
+    .replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+  return `${hdr}.${pay}.${sig}`;
 }
 
 function getMemberFromRequest(req) {
   const auth = req.headers["authorization"] || "";
   const token = auth.replace("Bearer ", "").trim();
   if (!token) return null;
-  const session = sessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    sessions.delete(token);
-    return null;
-  }
-  return session.memberId;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [hdr, pay, sig] = parts;
+  const expected = crypto.createHmac("sha256", JWT_SECRET)
+    .update(`${hdr}.${pay}`).digest("base64")
+    .replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+  if (sig !== expected) return null;
+  try {
+    const data = JSON.parse(_b64urlDec(pay));
+    if (data.exp < Math.floor(Date.now() / 1000)) return null;
+    return data.sub;
+  } catch { return null; }
 }
 
 // ── Request body parser ───────────────────────────────────────────────────────
