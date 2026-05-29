@@ -3100,14 +3100,6 @@ function buildTaskCard(task, opts = {}) {
   }
   item.appendChild(label);
 
-  // 반복업무 연결 아이콘
-  if (isLinkedRecurring) {
-    const recIcon = document.createElement("span");
-    recIcon.className = "task-rec-icon";
-    recIcon.title = "반복업무 연결";
-    recIcon.textContent = "🔁";
-    item.appendChild(recIcon);
-  }
 
   // 액션
   const actions = document.createElement("div");
