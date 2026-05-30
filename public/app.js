@@ -2262,6 +2262,9 @@ async function doArchiveSearch() {
                   date: i.date || "",
                   reportYear: y,
                   reportWeek: w,
+                  subtasks: (i.subtasks || []).filter(s => s.text?.trim()).map(s => ({
+                    text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
+                  })),
                 }).replace(/"/g, "&quot;");
                 return `<div class="archive-item ${st}" data-item="${itemJson}"><span class="archive-item-dot"></span><span class="archive-item-text">[${sLabel[st]}] ${esc(i.text)}${dt}</span></div>`;
               }).join("");
