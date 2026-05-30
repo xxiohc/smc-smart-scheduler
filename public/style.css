@@ -1123,6 +1123,21 @@ input, select, textarea { outline: none; }
 .modal-fields { display: flex; flex-direction: column; gap: 14px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+/* ── 업무 추가 모달 — 상태 버튼 그룹 ─────────────────────── */
+.tf-status-row { flex-direction: row; align-items: center; gap: 10px; }
+.tf-status-row label { flex-shrink: 0; margin-bottom: 0; }
+.tf-status-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.tf-st-btn {
+  padding: 4px 14px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--line-strong); border-radius: 20px;
+  background: none; color: var(--muted); cursor: pointer;
+  transition: all 0.12s; white-space: nowrap;
+}
+.tf-st-btn:hover { border-color: var(--primary); color: var(--primary); }
+.tf-st-btn.active[data-key="waiting"]     { border-color: var(--yellow);  color: var(--yellow);  background: var(--yellow-soft); }
+.tf-st-btn.active[data-key="in_progress"] { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.tf-st-btn.active[data-key="done"]        { border-color: var(--good);    color: var(--good);    background: var(--good-soft); }
+
 /* ── 반복 등록 토글 (업무 추가 모달 내) ─────────────────────── */
 .recurring-toggle-row {
   border-top: 1px dashed var(--line); padding-top: 14px;

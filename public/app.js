@@ -800,8 +800,16 @@ function createWeekTaskItem(item, idx) {
         inp.className = "wts-input";
         inp.value = s.text || "";
         inp.placeholder = "세부업무 내용";
-        inp.addEventListener("input", (e) => { S.weekTasks[idx].subtasks[si].text = e.target.value; });
+        if (S.reportSubmitted) {
+          inp.readOnly = true;
+          inp.style.cssText = "background:var(--bg-soft,#f8f9fa);color:var(--muted);cursor:default;";
+        }
+        inp.addEventListener("input", (e) => {
+          if (S.reportSubmitted) { e.target.value = S.weekTasks[idx].subtasks[si].text; return; }
+          S.weekTasks[idx].subtasks[si].text = e.target.value;
+        });
         inp.addEventListener("keydown", (e) => {
+          if (S.reportSubmitted) { e.preventDefault(); return; }
           if (e.key === "Enter" && !e.isComposing) {
             e.preventDefault();
             S.weekTasks[idx].subtasks.push({ id: genLocalId(), text: "", status: "in_progress", done: false });
@@ -4078,6 +4086,19 @@ function openTaskModal(id, modalOpts = {}) {
         </div>
       </div>
 
+      <div class="form-field tf-status-row">
+        <label>상태</label>
+        <div class="tf-status-btns">
+          <button type="button" class="tf-st-btn${(task?.status||'in_progress')==='waiting'     ?' active':''}" data-key="waiting">계획</button>
+          <button type="button" class="tf-st-btn${(task?.status||'in_progress')==='in_progress' ?' active':''}" data-key="in_progress">진행</button>
+          <button type="button" class="tf-st-btn${(task?.status||'in_progress')==='done'        ?' active':''}" data-key="done">완료</button>
+        </div>
+      </div>
+      <div class="form-field" id="tf-date-wrap" style="${(task?.status||'in_progress')==='in_progress'?'display:none':''}">
+        <label>일자 <span class="field-hint">(선택)</span></label>
+        <input type="date" id="tf-date" value="${task?.due_date || ''}" />
+      </div>
+
       ${!simple ? `
       <div class="form-field">
         <label>세부 업무 <span class="field-hint">(선택) 항목별 마감일·상태 설정 가능</span></label>
@@ -4215,6 +4236,17 @@ function openTaskModal(id, modalOpts = {}) {
     }
   });
 
+  /* ── 상태 버튼 토글 + 일자 표시 제어 ──────────────── */
+  card.querySelectorAll(".tf-st-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      card.querySelectorAll(".tf-st-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      // 진행 상태이면 일자 숨김
+      const dateWrap = $("tf-date-wrap");
+      if (dateWrap) dateWrap.style.display = btn.dataset.key === "in_progress" ? "none" : "";
+    });
+  });
+
   /* ── 저장 ────────────────────────────────────────── */
   $("closeModal").addEventListener("click", closeModal);
   $("tf-cat1").focus();
@@ -4230,19 +4262,23 @@ function openTaskModal(id, modalOpts = {}) {
     const title = cat2Val || cat1Val;
     if (!title) { alert("카테고리①을 선택하거나 직접 입력하세요."); return; }
 
+    // 상태: 직접 선택한 값 우선, 세부업무 있으면 재집계
+    let taskStatus = card.querySelector(".tf-st-btn.active")?.dataset.key || "in_progress";
+    const taskDate = $("tf-date")?.value || null;
+
     let validSubs = [];
-    let taskStatus = "in_progress";
     if (!simple) {
-      // 세부업무 text 필드 동기화 (input blur 전에 저장됐을 수 있으므로)
+      // 세부업무 text 필드 동기화
       $("mst-list").querySelectorAll(".mst-text-input").forEach((inp) => {
         const idx = +inp.dataset.idx;
         if (subtasks[idx]) subtasks[idx].text = inp.value;
       });
       validSubs = subtasks.filter((s) => s.text.trim());
-      // 전체 상태: 세부업무 기준 자동 집계
+      // 세부업무 있으면 전체 상태 자동 집계
       if (validSubs.length > 0) {
         if (validSubs.every((s) => s.status === "done")) taskStatus = "done";
         else if (validSubs.every((s) => s.status === "waiting")) taskStatus = "waiting";
+        else taskStatus = "in_progress";
       }
     }
 
@@ -4251,7 +4287,7 @@ function openTaskModal(id, modalOpts = {}) {
       cat1:     cat1Val,
       category: cat2Val,
       status:   taskStatus,
-      due_date: null,
+      due_date: taskDate,
       note:     simple ? "" : ($("tf-note")?.value.trim() || ""),
       subtasks: validSubs,
     };
@@ -4262,7 +4298,11 @@ function openTaskModal(id, modalOpts = {}) {
         S.tasks.unshift(res.task);
         // 이번 주 업무현황에도 추가 (직접 입력 경로)
         if (addToWeek) {
-          S.weekTasks.push({ text: title, status: "in_progress", date: body.due_date || "" });
+          S.weekTasks.push({
+            text: title, cat1: cat1Val, cat2: cat2Val,
+            status: taskStatus, date: taskDate || "",
+            subtasks: validSubs,
+          });
           renderWeekTasksList();
         }
       } else {
