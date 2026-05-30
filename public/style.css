@@ -2008,8 +2008,10 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* 섹션 카드 */
 .comp-cat1-section { background: var(--surface); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
 .comp-cat1-head { font-size: 15px; font-weight: 800; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 6px; margin-bottom: 10px; }
-/* 사람별 정렬 헤더 */
-.comp-member-head { font-size: 16px; font-weight: 700; color: var(--ink); border-bottom: 2px solid var(--line-strong); padding-bottom: 6px; margin-bottom: 10px; display: flex; align-items: baseline; gap: 6px; }
+/* cat1 내부 사람 행 (아카이빙 archive-member-row와 동일 구조) */
+.comp-member-row { padding: 10px 0 6px; border-bottom: 1px solid var(--line); }
+.comp-member-row:last-child { border-bottom: none; padding-bottom: 0; }
+.comp-member-name { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; align-items: baseline; gap: 6px; }
 .comp-item-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px 6px 8px; border-radius: 6px; }
 .comp-item-row:hover { background: var(--bg); }
 .comp-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }

@@ -4851,8 +4851,6 @@ function wireEvents() {
     S.comp = { ...S.comp, year: S.dash.year, week: S.dash.week };
     renderCompilation();
   });
-  $("compSortCat").addEventListener("click", () => { S.comp.sortMode = "cat"; renderCompilation(); });
-  $("compSortMember").addEventListener("click", () => { S.comp.sortMode = "member"; renderCompilation(); });
 
   // PDF 내보내기
   $("compPdfBtn").addEventListener("click", () => {
@@ -4866,10 +4864,11 @@ function wireEvents() {
       <style>
         body { font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; margin: 30px; color: #111827; }
         h1 { font-size: 18px; margin-bottom: 6px; }
-        .comp-sort-bar { display: none; }
         .comp-cat1-section { margin-bottom: 18px; }
         .comp-cat1-head { font-size: 15px; font-weight: 800; border-bottom: 2px solid #3182f6; padding-bottom: 4px; margin-bottom: 8px; color: #1b64da; }
-        .comp-member-head { font-size: 16px; font-weight: 700; border-bottom: 2px solid #374151; padding-bottom: 4px; margin-bottom: 8px; color: #111827; }
+        .comp-member-row { padding: 8px 0 4px; border-bottom: 1px solid #e5e7eb; }
+        .comp-member-row:last-child { border-bottom: none; }
+        .comp-member-name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px; }
         .archive-member-part { font-size: 12px; color: #6b7280; font-weight: 400; margin-left: 6px; }
         .archive-items { display: flex; flex-direction: column; gap: 0; }
         .archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: #111827; padding: 5px 0; border-bottom: 1px solid #e5e7eb; }
@@ -4955,13 +4954,8 @@ function populateCompileWeekSelect() {
 
 async function renderCompilation() {
   if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
-  if (!S.comp.sortMode) S.comp.sortMode = "cat";
   const { year, week } = S.comp;
   $("compWeekLabel").textContent = weekLabel(year, week);
-
-  // 정렬 토글 버튼 상태 반영
-  $("compSortCat").classList.toggle("active", S.comp.sortMode === "cat");
-  $("compSortMember").classList.toggle("active", S.comp.sortMode === "member");
 
   const result = $("compilationResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -4984,45 +4978,32 @@ async function renderCompilation() {
 
   result.innerHTML = "";
 
-  // 해당 주 날짜 범위 (아카이빙과 동일한 형식)
+  // 해당 주 날짜 범위
   const ws = weekStart(year, week), we = weekEnd(year, week);
   const fmt = (d) => `${d.getMonth()+1}/${d.getDate()}`;
   const weekRangeLabel = `${fmt(ws)}~${fmt(we)}`;
 
   const sLabel = { in_progress: "진행중", done: "완료", hold: "보류", waiting: "계획" };
 
-  // ── 공통: 아카이빙 스타일 archive-item 행 생성 ──────────────
-  const makeItemRow = (item, opts = {}) => {
-    const { showCat1 = false, showMember = false } = opts;
+  // ── 아카이빙 스타일 archive-item 행 생성 ──
+  const makeItemRow = (item) => {
     const st = _WEEK_LEGACY[item.status] || item.status || "in_progress";
-    const cat1 = item.cat1 || "";
     const cat2 = item.cat2 || "";
     const subs = (item.subtasks || []).filter(s => s.text?.trim());
-    const hasMainText = item.text && item.text !== cat2 && item.text !== cat1;
+    const hasMainText = item.text && item.text !== cat2 && item.text !== (item.cat1 || "");
 
-    // 날짜 배지: 취합 주 범위 표시
     const wkHtml = `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
-
-    // 상태 배지 (진행중은 숨김)
     const showBadge = st !== "in_progress";
     const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
 
-    // cat 헤더 — 사람별 정렬이면 cat1+cat2, 카테고리별이면 cat2만
-    let catHtml = "";
-    if (showCat1 && cat1) {
-      const c1Html = `<span class="arc-cat1">${esc(cat1)}</span>`;
-      const sepHtml = cat2 ? `<span class="arc-cat-sep">›</span>` : "";
-      const c2Html = cat2 ? `<span class="arc-cat2">${esc(cat2)}</span>` : "";
-      catHtml = `<div class="arc-cats">${c1Html}${sepHtml}${c2Html}${!hasMainText ? wkHtml : ""}</div>`;
-    } else if (cat2) {
-      catHtml = `<div class="arc-cats"><span class="arc-cat2">${esc(cat2)}</span>${!hasMainText ? wkHtml : ""}</div>`;
-    }
+    // cat2 (cat1은 섹션 헤더에 있으므로 아이템에는 cat2만)
+    const cat2Html = cat2 ? `<span class="arc-cat2">${esc(cat2)}</span>` : "";
+    const catHtml = cat2Html
+      ? `<div class="arc-cats">${cat2Html}${!hasMainText ? wkHtml : ""}</div>` : "";
 
-    // 본문 텍스트
     const mainText = hasMainText
       ? `<span class="arc-main-text">${esc(item.text)}${wkHtml}</span>` : "";
 
-    // 세부업무
     const subsHtml = subs.length
       ? `<div class="arc-subs">${subs.map(s => {
           const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
@@ -5033,18 +5014,12 @@ async function renderCompilation() {
         }).join("")}</div>`
       : "";
 
-    // 담당자 (카테고리별 정렬일 때만 표시)
-    const memberHtml = showMember ? `<span class="comp-member-tag">${esc(item.memberName)}</span>` : "";
-
     const row = document.createElement("div");
     row.className = `archive-item ${st}`;
     row.innerHTML = `
       <span class="archive-item-dot"></span>
-      <div class="arc-item-body">
-        ${catHtml}${mainText}${badgeHtml}${subsHtml}
-      </div>
-      ${memberHtml}
-      <button class="comp-item-del" data-id="${item.id || ""}" title="삭제">✕</button>
+      <div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>
+      <button class="comp-item-del" title="삭제">✕</button>
     `;
     row.querySelector(".comp-item-del").addEventListener("click", async () => {
       const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
@@ -5056,61 +5031,48 @@ async function renderCompilation() {
     return row;
   };
 
-  // ── 카테고리별 정렬 ─────────────────────────────────────────
-  if (S.comp.sortMode === "cat") {
-    const byCat1 = {};
-    items.forEach((item) => {
-      const c1 = item.cat1 || "기타";
-      if (!byCat1[c1]) byCat1[c1] = [];
-      byCat1[c1].push(item);
-    });
+  // ── cat1 → 사람 → 아이템 (아카이빙과 동일 구조) ────────────
+  const byCat1 = {};
+  items.forEach((item) => {
+    const c1 = item.cat1 || "기타";
+    if (!byCat1[c1]) byCat1[c1] = {};
+    const name = item.memberName || "미확인";
+    if (!byCat1[c1][name]) byCat1[c1][name] = { part: item.memberPart || "", items: [] };
+    byCat1[c1][name].items.push(item);
+  });
 
-    Object.entries(byCat1).forEach(([cat1, catItems]) => {
-      catItems.sort((a, b) => (a.cat2 || "").localeCompare(b.cat2 || "", "ko"));
+  Object.entries(byCat1).forEach(([cat1, byMember]) => {
+    const section = document.createElement("div");
+    section.className = "comp-cat1-section";
 
-      const section = document.createElement("div");
-      section.className = "comp-cat1-section";
+    // cat1 헤더
+    const catHead = document.createElement("div");
+    catHead.className = "comp-cat1-head";
+    catHead.textContent = cat1;
+    section.appendChild(catHead);
 
-      const h = document.createElement("div");
-      h.className = "comp-cat1-head";
-      h.textContent = cat1;
-      section.appendChild(h);
-
-      const itemsWrap = document.createElement("div");
-      itemsWrap.className = "archive-items";
-      catItems.forEach((item) => itemsWrap.appendChild(makeItemRow(item, { showCat1: false, showMember: true })));
-      section.appendChild(itemsWrap);
-      result.appendChild(section);
-    });
-
-  // ── 사람별 정렬 ─────────────────────────────────────────────
-  } else {
-    const byMember = {};
-    items.forEach((item) => {
-      const name = item.memberName || "미확인";
-      if (!byMember[name]) byMember[name] = { part: item.memberPart || "", items: [] };
-      byMember[name].items.push(item);
-    });
-
+    // cat1 안에서 사람별로 그룹 (아카이빙 archive-member-row 스타일)
     Object.entries(byMember).forEach(([name, { part, items: mItems }]) => {
-      mItems.sort((a, b) => (a.cat1 || "").localeCompare(b.cat1 || "", "ko") || (a.cat2 || "").localeCompare(b.cat2 || "", "ko"));
+      mItems.sort((a, b) => (a.cat2 || "").localeCompare(b.cat2 || "", "ko"));
 
-      const section = document.createElement("div");
-      section.className = "comp-cat1-section";
+      const memberRow = document.createElement("div");
+      memberRow.className = "comp-member-row";
 
-      // 사람 헤더 (아카이빙 member-name 스타일)
-      const h = document.createElement("div");
-      h.className = "comp-member-head";
-      h.innerHTML = `${esc(name)}<span class="archive-member-part">${esc(part)}</span>`;
-      section.appendChild(h);
+      const memberName = document.createElement("div");
+      memberName.className = "comp-member-name";
+      memberName.innerHTML = `${esc(name)}<span class="archive-member-part">${esc(part)}</span>`;
+      memberRow.appendChild(memberName);
 
       const itemsWrap = document.createElement("div");
       itemsWrap.className = "archive-items";
-      mItems.forEach((item) => itemsWrap.appendChild(makeItemRow(item, { showCat1: true, showMember: false })));
-      section.appendChild(itemsWrap);
-      result.appendChild(section);
+      mItems.forEach((item) => itemsWrap.appendChild(makeItemRow(item)));
+      memberRow.appendChild(itemsWrap);
+
+      section.appendChild(memberRow);
     });
-  }
+
+    result.appendChild(section);
+  });
 }
 
 /* ── Boot ─────────────────────────────────────────────── */
