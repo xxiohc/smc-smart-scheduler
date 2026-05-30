@@ -800,13 +800,16 @@ function createWeekTaskItem(item, idx) {
         inp.className = "wts-input";
         inp.value = s.text || "";
         inp.placeholder = "세부업무 내용";
+        // 초기 상태: 내용 있으면 filled 스타일
+        if (s.text?.trim()) inp.classList.add("filled");
         if (S.reportSubmitted) {
           inp.readOnly = true;
-          inp.style.cssText = "background:var(--bg-soft,#f8f9fa);color:var(--muted);cursor:default;";
+          inp.style.cssText = "background:transparent;border-color:transparent;color:var(--muted);cursor:default;font-weight:500;";
         }
         inp.addEventListener("input", (e) => {
           if (S.reportSubmitted) { e.target.value = S.weekTasks[idx].subtasks[si].text; return; }
           S.weekTasks[idx].subtasks[si].text = e.target.value;
+          inp.classList.toggle("filled", !!e.target.value.trim());
         });
         inp.addEventListener("keydown", (e) => {
           if (S.reportSubmitted) { e.preventDefault(); return; }
@@ -1153,7 +1156,7 @@ async function renderTeam(silent = false) {
   const pf = $("partFilter");
   pf.innerHTML = "";
   if (isTeamAdmin) {
-    const parts = ["전체", ...new Set(S.members.map((m) => m.part).filter(Boolean))];
+    const parts = ["전체", ...new Set(S.members.map((m) => m.part).filter(p => p && p !== "경영지원팀"))];
     parts.forEach((p) => {
       const chip = document.createElement("button");
       chip.className = "part-chip" + (S.team.part === p ? " active" : "");
@@ -1177,11 +1180,13 @@ async function renderTeam(silent = false) {
     const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
     const reportMap = Object.fromEntries(reports.map((r) => [r.member_id, r]));
 
-    // 팀장: 파트 필터 적용 / 파트장: 본인 파트만
+    // 팀장: 파트 필터 적용 / 파트장: 본인 파트만 (경영지원팀은 제출현황에서 제외)
     const filtered = S.members.filter((m) =>
-      isTeamAdmin
-        ? (S.team.part === "전체" || m.part === S.team.part)
-        : m.part === myPart
+      m.part !== "경영지원팀" && (
+        isTeamAdmin
+          ? (S.team.part === "전체" || m.part === S.team.part)
+          : m.part === myPart
+      )
     );
     const byPart = {};
     filtered.forEach((m) => {
