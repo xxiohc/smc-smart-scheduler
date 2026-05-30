@@ -365,6 +365,12 @@ function enterApp() {
   if (S.member.role === "admin") {
     document.querySelector(".tab-admin").classList.remove("hidden");
   }
+  // 제출 현황 탭: 팀장(admin) · 파트장(leader)만 표시
+  if (S.member.role === "admin" || S.member.role === "leader") {
+    document.querySelector(".tab-btn[data-tab='team']")?.classList.remove("hidden");
+  } else {
+    document.querySelector(".tab-btn[data-tab='team']")?.classList.add("hidden");
+  }
 
   updateHeaderUser();
   fetchMembers().then(() => {
@@ -1131,20 +1137,29 @@ async function renderTeam(silent = false) {
   const _tdr = `${_tws.getMonth()+1}월 ${_tws.getDate()}일 ~ ${_twe.getMonth()+1}월 ${_twe.getDate()}일`;
   $("teamWeekLabel").innerHTML = `${year}년 ${week}주차<span class="week-date-range">${_tdr}</span>`;
 
-  // Part filter chips
-  const parts = ["전체", ...new Set(S.members.map((m) => m.part).filter(Boolean))];
+  // 파트장(leader)은 본인 파트만, 팀장(admin)은 전체
+  const isTeamAdmin = S.member.role === "admin";
+  const myPart = S.member.part;
+
+  // Part filter chips (팀장만 파트 필터 사용 가능)
   const pf = $("partFilter");
   pf.innerHTML = "";
-  parts.forEach((p) => {
-    const chip = document.createElement("button");
-    chip.className = "part-chip" + (S.team.part === p ? " active" : "");
-    chip.textContent = p;
-    chip.addEventListener("click", () => {
-      S.team.part = p;
-      renderTeam();
+  if (isTeamAdmin) {
+    const parts = ["전체", ...new Set(S.members.map((m) => m.part).filter(Boolean))];
+    parts.forEach((p) => {
+      const chip = document.createElement("button");
+      chip.className = "part-chip" + (S.team.part === p ? " active" : "");
+      chip.textContent = p;
+      chip.addEventListener("click", () => {
+        S.team.part = p;
+        renderTeam();
+      });
+      pf.appendChild(chip);
     });
-    pf.appendChild(chip);
-  });
+  } else {
+    // 파트장: 파트 필터 칩 숨김, 자기 파트 라벨만 표시
+    pf.innerHTML = `<span class="part-chip active" style="cursor:default">${esc(myPart)}</span>`;
+  }
 
   const grid = $("teamGrid");
   if (!silent) grid.innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -1154,8 +1169,11 @@ async function renderTeam(silent = false) {
     const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
     const reportMap = Object.fromEntries(reports.map((r) => [r.member_id, r]));
 
-    const filtered = S.members.filter(
-      (m) => S.team.part === "전체" || m.part === S.team.part
+    // 팀장: 파트 필터 적용 / 파트장: 본인 파트만
+    const filtered = S.members.filter((m) =>
+      isTeamAdmin
+        ? (S.team.part === "전체" || m.part === S.team.part)
+        : m.part === myPart
     );
     const byPart = {};
     filtered.forEach((m) => {
@@ -1188,7 +1206,6 @@ async function renderTeam(silent = false) {
 
       const cards = document.createElement("div");
       cards.className = "team-cards";
-      const isPrivilegedTeam = S.member.role === "admin" || S.member.role === "leader";
       members.forEach((m) => {
         const r = reportMap[m.id];
         const card = document.createElement("div");
@@ -1197,50 +1214,37 @@ async function renderTeam(silent = false) {
         const submitLabel = !r ? "미입력" : isSubmitted ? "제출완료" : "임시저장";
         const submitClass = !r ? "none" : isSubmitted ? "submitted" : "draft";
 
-        if (isPrivilegedTeam) {
-          // 팀장/파트장/관리자: 업무 통계 + 미리보기 + 클릭 상세보기
-          let inProgressCount = 0, doneCount = 0, holdCount = 0, totalCount = 0, preview = "—";
-          if (r) {
-            const rTasks = getReportTasks(r);
-            totalCount = rTasks.length;
-            rTasks.forEach((t) => {
-              const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
-              if (st === "in_progress") inProgressCount++;
-              else if (st === "done") doneCount++;
-              else holdCount++;
-            });
-            preview = rTasks[0]?.text || "—";
-          }
-          card.innerHTML = `
-            <div class="team-card-head">
-              <div>
-                <div class="team-member-name">${esc(m.name)}</div>
-                <div class="team-member-part">${esc(m.part)}</div>
-              </div>
-              <span class="team-submit-status ${submitClass}">${submitLabel}</span>
-            </div>
-            ${r ? `
-              <div class="team-card-preview">${esc(preview.slice(0, 60))}${preview.length > 60 ? "…" : ""}</div>
-              <div class="team-card-count">진행중 ${inProgressCount}건 · 완료 ${doneCount}건${holdCount ? ` · 보류 ${holdCount}건` : ""} <span style="color:var(--muted)">(총 ${totalCount}건)</span></div>
-            ` : '<div class="team-card-preview" style="color:var(--muted)">아직 업무를 입력하지 않았습니다.</div>'}
-          `;
-          card.addEventListener("click", () => {
-            const canEdit = S.member.role === "admin" || S.member.role === "leader";
-            showReportDetail(m, r, year, week, canEdit);
+        // 업무 통계 (단일 tasks 기준)
+        let inProgressCount = 0, doneCount = 0, holdCount = 0, totalCount = 0, preview = "—";
+        if (r) {
+          const rTasks = getReportTasks(r);
+          totalCount = rTasks.length;
+          rTasks.forEach((t) => {
+            const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
+            if (st === "in_progress") inProgressCount++;
+            else if (st === "done") doneCount++;
+            else holdCount++;
           });
-        } else {
-          // 일반 팀원: 이름 + 제출 여부만 표시, 클릭 불가
-          card.innerHTML = `
-            <div class="team-card-head">
-              <div>
-                <div class="team-member-name">${esc(m.name)}</div>
-                <div class="team-member-part">${esc(m.part)}</div>
-              </div>
-              <span class="team-submit-status ${submitClass}">${submitLabel}</span>
-            </div>
-          `;
-          card.style.cursor = "default";
+          preview = rTasks[0]?.text || "—";
         }
+
+        card.innerHTML = `
+          <div class="team-card-head">
+            <div>
+              <div class="team-member-name">${esc(m.name)}</div>
+              <div class="team-member-part">${esc(m.part)}</div>
+            </div>
+            <span class="team-submit-status ${submitClass}">${submitLabel}</span>
+          </div>
+          ${r ? `
+            <div class="team-card-preview">${esc(preview.slice(0, 60))}${preview.length > 60 ? "…" : ""}</div>
+            <div class="team-card-count">진행중 ${inProgressCount}건 · 완료 ${doneCount}건${holdCount ? ` · 보류 ${holdCount}건` : ""} <span style="color:var(--muted)">(총 ${totalCount}건)</span></div>
+          ` : '<div class="team-card-preview" style="color:var(--muted)">아직 업무를 입력하지 않았습니다.</div>'}
+        `;
+        card.addEventListener("click", () => {
+          const canEdit = S.member.role === "admin" || S.member.role === "leader";
+          showReportDetail(m, r, year, week, canEdit);
+        });
         cards.appendChild(card);
       });
       section.appendChild(cards);
