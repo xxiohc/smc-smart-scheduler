@@ -4078,43 +4078,6 @@ function openTaskModal(id, modalOpts = {}) {
         </div>
       </div>
 
-      <div class="field-row">
-        <div class="form-field">
-          <label>주기 <span class="field-hint">(루틴 업무 주기)</span></label>
-          <select id="tf-cycle">
-            <option value="">없음</option>
-            <option value="매일"   ${task?.cycle==="매일"   ?"selected":""}>매일</option>
-            <option value="매주"   ${task?.cycle==="매주"   ?"selected":""}>매주</option>
-            <option value="매월"   ${task?.cycle==="매월"   ?"selected":""}>매월</option>
-            <option value="분기별" ${task?.cycle==="분기별" ?"selected":""}>분기별 (3개월)</option>
-            <option value="반기별" ${task?.cycle==="반기별" ?"selected":""}>반기별 (6개월)</option>
-            <option value="매년"   ${task?.cycle==="매년"   ?"selected":""}>매년</option>
-            <option value="연중"   ${task?.cycle==="연중"   ?"selected":""}>연중 (TF·장기 프로젝트)</option>
-          </select>
-        </div>
-        <div class="form-field" id="tf-cycle-month-wrap" style="${task?.cycle==="매년"?'':'display:none'}">
-          <label>월 <span class="field-hint">(1~12)</span></label>
-          <select id="tf-cycle-month">
-            <option value="">월 선택</option>
-            ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${task?.cycle_month===(i+1)?"selected":""}>${i+1}월</option>`).join("")}
-          </select>
-        </div>
-        <div class="form-field" id="tf-cycle-day-wrap" style="${task?.cycle&&task.cycle!=='매일'&&task.cycle!=='매주'&&task.cycle!=='분기별'&&task.cycle!=='반기별'&&task.cycle!=='연중'?'':'display:none'}">
-          <label>일 <span class="field-hint">(1~31)</span></label>
-          <input id="tf-cycle-day" type="number" min="1" max="31"
-            value="${task?.cycle_day||""}" placeholder="25" />
-        </div>
-      </div>
-
-      <div class="form-field">
-        <label>해당일 휴일인 경우 <span class="field-hint">(선택)</span></label>
-        <select id="tf-holiday-adjust">
-          <option value="none"   ${(task?.holiday_adjust||"none")==="none"   ?"selected":""}>조정 없음</option>
-          <option value="after"  ${task?.holiday_adjust==="after"  ?"selected":""}>다음 평일로</option>
-          <option value="before" ${task?.holiday_adjust==="before" ?"selected":""}>이전 평일로</option>
-        </select>
-      </div>
-
       ${!simple ? `
       <div class="form-field">
         <label>세부 업무 <span class="field-hint">(선택) 항목별 마감일·상태 설정 가능</span></label>
@@ -4130,41 +4093,6 @@ function openTaskModal(id, modalOpts = {}) {
         <textarea id="tf-note" rows="2" placeholder="추가 내용, 참고사항 등">${esc(task?.note || "")}</textarea>
       </div>` : ""}
 
-      ${!simple && isNew ? `
-      <div class="recurring-toggle-row">
-        <label class="recurring-toggle-label">
-          <input type="checkbox" id="tf-rec-on" />
-          <span class="recurring-toggle-icon">🔁</span>
-          <span>반복 등록 (주기 설정)</span>
-        </label>
-      </div>
-      <div id="tf-rec-fields" class="recurring-fields hidden">
-        <div class="field-row">
-          <div class="form-field">
-            <label>반복 유형</label>
-            <select id="tf-rec-type">
-              <option value="weekly">매주</option>
-              <option value="monthly">매월</option>
-            </select>
-          </div>
-          <div class="form-field" id="tf-rec-weekly-wrap">
-            <label>요일</label>
-            <select id="tf-rec-weekday">${weekdayOptsHtml}</select>
-          </div>
-          <div class="form-field hidden" id="tf-rec-monthly-wrap">
-            <label>날짜 (1~31일)</label>
-            <input id="tf-rec-mday" type="number" min="1" max="31" value="1" />
-          </div>
-        </div>
-        <div class="form-field">
-          <label>휴일 조정</label>
-          <select id="tf-rec-adjust">
-            <option value="after">다음 평일로</option>
-            <option value="before">이전 평일로</option>
-            <option value="none">조정 없음</option>
-          </select>
-        </div>
-      </div>` : ""}
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="closeModal">취소</button>
@@ -4287,26 +4215,6 @@ function openTaskModal(id, modalOpts = {}) {
     }
   });
 
-  /* ── 주기 필드 토글 ─────────────────────────────── */
-  $("tf-cycle")?.addEventListener("change", () => {
-    const v = $("tf-cycle").value;
-    const showDay = v && v !== "매일" && v !== "매주" && v !== "분기별" && v !== "반기별" && v !== "연중";
-    $("tf-cycle-day-wrap").style.display = showDay ? "" : "none";
-    $("tf-cycle-month-wrap").style.display = v === "매년" ? "" : "none";
-  });
-
-  /* ── 반복 토글 ───────────────────────────────────── */
-  if (!simple && isNew) {
-    $("tf-rec-on").addEventListener("change", (e) => {
-      $("tf-rec-fields").classList.toggle("hidden", !e.target.checked);
-    });
-    $("tf-rec-type").addEventListener("change", () => {
-      const t = $("tf-rec-type").value;
-      $("tf-rec-weekly-wrap").classList.toggle("hidden", t !== "weekly");
-      $("tf-rec-monthly-wrap").classList.toggle("hidden", t !== "monthly");
-    });
-  }
-
   /* ── 저장 ────────────────────────────────────────── */
   $("closeModal").addEventListener("click", closeModal);
   $("tf-cat1").focus();
@@ -4338,43 +4246,20 @@ function openTaskModal(id, modalOpts = {}) {
       }
     }
 
-    const cycleVal       = $("tf-cycle")?.value || "";
-    const cycleDayVal    = cycleVal && $("tf-cycle-day").value ? Number($("tf-cycle-day").value) : null;
-    const cycleMonthVal  = cycleVal === "매년" && $("tf-cycle-month")?.value ? Number($("tf-cycle-month").value) : null;
-    const holidayAdjust  = $("tf-holiday-adjust")?.value || "none";
     const body = {
       title,
-      cat1:           cat1Val,
-      category:       cat2Val,
-      status:         taskStatus,
-      due_date:       null,
-      note:           simple ? "" : ($("tf-note")?.value.trim() || ""),
-      subtasks:       validSubs,
-      cycle:          cycleVal,
-      cycle_day:      cycleDayVal,
-      cycle_month:    cycleMonthVal,
-      holiday_adjust: holidayAdjust,
+      cat1:     cat1Val,
+      category: cat2Val,
+      status:   taskStatus,
+      due_date: null,
+      note:     simple ? "" : ($("tf-note")?.value.trim() || ""),
+      subtasks: validSubs,
     };
     try {
       if (isNew) {
         const createBody = S.taskTargetMemberId ? { ...body, target_member_id: S.taskTargetMemberId } : body;
         const res = await api("POST", "/api/tasks", createBody);
         S.tasks.unshift(res.task);
-        // 반복 등록 체크됐으면 recurring도 함께 생성
-        const recOn = !simple && $("tf-rec-on")?.checked;
-        if (recOn) {
-          const recType = $("tf-rec-type").value;
-          const recDay  = recType === "weekly"
-            ? Number($("tf-rec-weekday").value)
-            : Number($("tf-rec-mday").value);
-          const recAdj  = $("tf-rec-adjust").value;
-          await api("POST", "/api/recurring", {
-            text: title, category: cat2Val,
-            recurrence_type: recType, recurrence_day: recDay, holiday_adjust: recAdj,
-          });
-          S.recurring = [];
-          await fetchRecurring();
-        }
         // 이번 주 업무현황에도 추가 (직접 입력 경로)
         if (addToWeek) {
           S.weekTasks.push({ text: title, status: "in_progress", date: body.due_date || "" });
