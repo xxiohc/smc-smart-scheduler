@@ -1573,7 +1573,8 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
           const bYear = e.member?.birthday ? parseInt(e.member.birthday.slice(0, 4), 10) : null;
           const age = bYear ? new Date(key).getFullYear() - bYear : null;
           const lunarTag = e.isLunar || e.repeat === "yearly_lunar" ? " (음)" : "";
-          evEl.textContent = `🎂 ${name} 생일${lunarTag}`;
+          const isMobile = window.innerWidth <= 480;
+          evEl.textContent = isMobile ? `🎂 ${name}${lunarTag}` : `🎂 ${name} 생일${lunarTag}`;
           evEl.title = `🎂 ${name}님 생일${lunarTag}${age ? ` · 만 ${age}세` : ""}`;
         } else {
           // 텍스트 span + 리사이즈 핸들 구조
