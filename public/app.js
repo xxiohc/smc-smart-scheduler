@@ -3531,6 +3531,35 @@ async function fetchCategories() {
   } catch (e) { /* 서버 카테고리 없으면 기본값 유지 */ }
 }
 
+/**
+ * 개인이 입력한 cat1/cat2를 팀 카테고리에 자동 등록
+ * - 이미 존재하면 그냥 통과 (중복 방지)
+ * - 변경된 경우에만 서버에 PUT 저장
+ */
+async function autoRegisterCategory(part, cat1, cat2) {
+  if (!part || !cat1) return;
+  let changed = false;
+
+  if (!PART_CATEGORIES[part]) {
+    PART_CATEGORIES[part] = {};
+    changed = true;
+  }
+  if (!PART_CATEGORIES[part][cat1]) {
+    PART_CATEGORIES[part][cat1] = [];
+    changed = true;
+  }
+  if (cat2 && !PART_CATEGORIES[part][cat1].includes(cat2)) {
+    PART_CATEGORIES[part][cat1].push(cat2);
+    changed = true;
+  }
+
+  if (changed) {
+    try {
+      await api("PUT", "/api/categories", PART_CATEGORIES);
+    } catch (e) { /* 저장 실패 시 무시 (로컬은 이미 반영됨) */ }
+  }
+}
+
 /** 현재 사용자(또는 대상 팀원)의 파트별 cat1 키 목록 반환 */
 function getPartCat1List(part) {
   return Object.keys(PART_CATEGORIES[part] || {});
@@ -4347,6 +4376,10 @@ function openTaskModal(id, modalOpts = {}) {
         const idx = S.tasks.findIndex((t) => t.id === id);
         if (idx >= 0) S.tasks[idx] = { ...S.tasks[idx], ...body };
       }
+
+      // ── 신규 cat1 / cat2 자동으로 팀 카테고리에 등록 ──
+      await autoRegisterCategory(part, cat1Val, cat2Val);
+
       closeModal();
       renderMyTasks();
     } catch (e) { alert(e.message); }
