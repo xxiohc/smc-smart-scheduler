@@ -1188,6 +1188,7 @@ async function renderTeam(silent = false) {
 
       const cards = document.createElement("div");
       cards.className = "team-cards";
+      const isPrivilegedTeam = S.member.role === "admin" || S.member.role === "leader";
       members.forEach((m) => {
         const r = reportMap[m.id];
         const card = document.createElement("div");
@@ -1196,37 +1197,50 @@ async function renderTeam(silent = false) {
         const submitLabel = !r ? "미입력" : isSubmitted ? "제출완료" : "임시저장";
         const submitClass = !r ? "none" : isSubmitted ? "submitted" : "draft";
 
-        // 업무 통계 (단일 tasks 기준)
-        let inProgressCount = 0, doneCount = 0, holdCount = 0, totalCount = 0, preview = "—";
-        if (r) {
-          const rTasks = getReportTasks(r);
-          totalCount = rTasks.length;
-          rTasks.forEach((t) => {
-            const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
-            if (st === "in_progress") inProgressCount++;
-            else if (st === "done") doneCount++;
-            else holdCount++;
-          });
-          preview = rTasks[0]?.text || "—";
-        }
-
-        card.innerHTML = `
-          <div class="team-card-head">
-            <div>
-              <div class="team-member-name">${esc(m.name)}</div>
-              <div class="team-member-part">${esc(m.part)}</div>
+        if (isPrivilegedTeam) {
+          // 팀장/파트장/관리자: 업무 통계 + 미리보기 + 클릭 상세보기
+          let inProgressCount = 0, doneCount = 0, holdCount = 0, totalCount = 0, preview = "—";
+          if (r) {
+            const rTasks = getReportTasks(r);
+            totalCount = rTasks.length;
+            rTasks.forEach((t) => {
+              const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
+              if (st === "in_progress") inProgressCount++;
+              else if (st === "done") doneCount++;
+              else holdCount++;
+            });
+            preview = rTasks[0]?.text || "—";
+          }
+          card.innerHTML = `
+            <div class="team-card-head">
+              <div>
+                <div class="team-member-name">${esc(m.name)}</div>
+                <div class="team-member-part">${esc(m.part)}</div>
+              </div>
+              <span class="team-submit-status ${submitClass}">${submitLabel}</span>
             </div>
-            <span class="team-submit-status ${submitClass}">${submitLabel}</span>
-          </div>
-          ${r ? `
-            <div class="team-card-preview">${esc(preview.slice(0, 60))}${preview.length > 60 ? "…" : ""}</div>
-            <div class="team-card-count">진행중 ${inProgressCount}건 · 완료 ${doneCount}건${holdCount ? ` · 보류 ${holdCount}건` : ""} <span style="color:var(--muted)">(총 ${totalCount}건)</span></div>
-          ` : '<div class="team-card-preview" style="color:var(--muted)">아직 업무를 입력하지 않았습니다.</div>'}
-        `;
-        card.addEventListener("click", () => {
-          const canEdit = S.member.role === "admin" || S.member.role === "leader";
-          showReportDetail(m, r, year, week, canEdit);
-        });
+            ${r ? `
+              <div class="team-card-preview">${esc(preview.slice(0, 60))}${preview.length > 60 ? "…" : ""}</div>
+              <div class="team-card-count">진행중 ${inProgressCount}건 · 완료 ${doneCount}건${holdCount ? ` · 보류 ${holdCount}건` : ""} <span style="color:var(--muted)">(총 ${totalCount}건)</span></div>
+            ` : '<div class="team-card-preview" style="color:var(--muted)">아직 업무를 입력하지 않았습니다.</div>'}
+          `;
+          card.addEventListener("click", () => {
+            const canEdit = S.member.role === "admin" || S.member.role === "leader";
+            showReportDetail(m, r, year, week, canEdit);
+          });
+        } else {
+          // 일반 팀원: 이름 + 제출 여부만 표시, 클릭 불가
+          card.innerHTML = `
+            <div class="team-card-head">
+              <div>
+                <div class="team-member-name">${esc(m.name)}</div>
+                <div class="team-member-part">${esc(m.part)}</div>
+              </div>
+              <span class="team-submit-status ${submitClass}">${submitLabel}</span>
+            </div>
+          `;
+          card.style.cursor = "default";
+        }
         cards.appendChild(card);
       });
       section.appendChild(cards);
@@ -2699,22 +2713,25 @@ async function doAnnualSummary(year, result) {
       });
     });
 
-    const PARTS = [...new Set(S.members.map((m) => m.part).filter(Boolean))];
-    const canWrite = S.member.role === "admin" || S.member.role === "leader";
+    const isPrivilegedAnnual = S.member.role === "admin" || S.member.role === "leader";
+    // 일반 팀원은 본인 데이터만
+    const visibleMembers = isPrivilegedAnnual ? S.members : S.members.filter((m) => m.id === S.member.id);
+    const PARTS = [...new Set(visibleMembers.map((m) => m.part).filter(Boolean))];
+    const canWrite = isPrivilegedAnnual;
 
     result.innerHTML = "";
     const block = document.createElement("div");
     block.className = "archive-week-block";
     block.innerHTML = `<div class="archive-week-head" style="cursor:default">
       <span class="archive-week-title">📊 ${year}년 연간 총평</span>
-      <span class="archive-week-meta">전체 ${S.members.length}명</span>
+      <span class="archive-week-meta">${isPrivilegedAnnual ? `전체 ${S.members.length}명` : "내 총평"}</span>
     </div>`;
 
     const body = document.createElement("div");
     body.className = "archive-week-body annual-body";
 
     PARTS.forEach((part) => {
-      const partMembers = S.members.filter((m) => m.part === part);
+      const partMembers = visibleMembers.filter((m) => m.part === part);
       const partTitle = document.createElement("div");
       partTitle.className = "archive-part-title";
       partTitle.textContent = part;
