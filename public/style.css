@@ -1778,6 +1778,16 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   .cal-event { font-size: 12px; padding: 1px 4px; }
   .cal-day-num { font-size: 13px; }
 
+  /* 주간업무 카드 (태블릿) */
+  .wtc-cat1, .wtc-cat2 { font-size: 14px; }
+  .week-task-cat-row { flex-wrap: wrap; gap: 4px; }
+  .week-task-cat { flex: 1 1 100%; }
+  .wtc-inline-controls { flex-wrap: wrap; gap: 4px; }
+  .week-task-sub-row { flex-wrap: wrap; gap: 4px; }
+  .wts-input { max-width: 100%; }
+  .wts-date-wrap { margin-left: 14px; }
+  .wts-st-group { margin-left: 14px; }
+
   /* Team */
   .team-cards { grid-template-columns: 1fr 1fr; }
   .summary-row { grid-template-columns: repeat(2, 1fr); }
@@ -1878,6 +1888,27 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   /* Task target row */
   .task-target-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .task-target-row select { width: 100%; }
+
+  /* ── 주간업무 카드 모바일 대응 ── */
+  /* 카테고리 헤더 폰트 축소 */
+  .wtc-cat1 { font-size: 13px; }
+  .wtc-sep  { font-size: 12px; }
+  .wtc-cat2 { font-size: 13px; }
+
+  /* 세부업무 없는 카드: cat-row 줄바꿈 허용 → 컨트롤이 아래 줄로 내려감 */
+  .week-task-cat-row { flex-wrap: wrap; gap: 4px; }
+  .week-task-cat { min-width: 0; flex: 1 1 100%; }
+  .wtc-inline-controls { flex-wrap: wrap; gap: 4px; margin-left: 0; }
+  .wtc-inline-date { width: 130px; font-size: 11px; }
+  .wtc-st-btn { padding: 3px 8px; font-size: 10px; }
+
+  /* 세부업무 행: 줄바꿈 허용 → 날짜+버튼이 아래로 */
+  .week-task-sub-row { flex-wrap: wrap; gap: 4px; }
+  .wts-input { max-width: 100%; flex: 1 1 calc(100% - 28px); }
+  .wts-date-wrap { margin-left: 14px; }
+  .wts-date { width: 130px; font-size: 11px; }
+  .wts-st-group { margin-left: 14px; }
+  .wts-st-btn { padding: 2px 7px; font-size: 10px; }
 
   /* Cal briefing */
   .cal-briefing-list { flex-direction: column; }
