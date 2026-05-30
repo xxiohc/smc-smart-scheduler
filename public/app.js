@@ -624,15 +624,8 @@ function renderWeekSubmitGuard() {
   guard.className = "week-submit-guard";
   guard.innerHTML = `
     <span class="wsg-icon">✓</span>
-    <span class="wsg-msg">이미 제출된 업무입니다. 수정하려면 <strong>수정하기</strong>를 누르세요.</span>
-    <button class="btn-ghost small" id="wsgUnlockBtn">수정하기</button>
+    <span class="wsg-msg">제출 완료된 업무입니다. 추가·삭제는 불가합니다. 수정이 필요하면 상단 <strong>제출 취소</strong> 버튼을 이용하세요.</span>
   `;
-  guard.querySelector("#wsgUnlockBtn").addEventListener("click", () => {
-    if (confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) {
-      S.reportSubmitted = false;
-      guard.remove();
-    }
-  });
   const container = $("weekTasksList");
   if (container) container.parentNode.insertBefore(guard, container);
 }
@@ -758,12 +751,13 @@ function createWeekTaskItem(item, idx) {
     inner.appendChild(catRow);
   }
 
-  // ── 텍스트 입력 (업무명 또는 자유 입력) ──
+  // ── 텍스트 입력 (카테고리 없을 때만 표시) ──
   const ta = document.createElement("textarea");
   ta.value = item.text || "";
   ta.placeholder = "업무 내용을 입력하세요.";
   ta.className = hasCat ? "week-task-ta has-cat" : "week-task-ta";
   ta.rows = hasCat ? 1 : 2;
+  if (hasCat) ta.style.display = "none"; // cat1›cat2가 라벨 역할 → 중복 텍스트 숨김
   ta.addEventListener("input", (e) => {
     S.weekTasks[idx].text = e.target.value;
     autoResize(e.target);
@@ -852,6 +846,8 @@ function createWeekTaskItem(item, idx) {
 
         dateWrap.appendChild(dateLbl);
         dateWrap.appendChild(dateIn);
+        // 진행 상태면 날짜 숨김
+        dateWrap.style.display = sStatus === "in_progress" ? "none" : "";
 
         // 상태 3버튼 (계획 / 진행 / 완료)
         const stGroup = document.createElement("div");
@@ -874,6 +870,8 @@ function createWeekTaskItem(item, idx) {
             );
             row.className = "week-task-sub-row" + (key === "done" ? " done" : "");
             applyDateState(S.weekTasks[idx].subtasks[si].due_date || "", key);
+            // 진행 상태면 날짜 숨김, 계획·완료면 표시
+            dateWrap.style.display = key === "in_progress" ? "none" : "";
           });
           stGroup.appendChild(btn);
         });
@@ -883,10 +881,8 @@ function createWeekTaskItem(item, idx) {
         delBtn.textContent = "✕";
         delBtn.addEventListener("click", () => {
           if (S.reportSubmitted) {
-            if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
-            S.reportSubmitted = false;
-            const g = document.getElementById("weekSubmitGuard");
-            if (g) g.remove();
+            showToast("⚠️ 이미 제출된 업무입니다. 삭제할 수 없습니다.", "error");
+            return;
           }
           S.weekTasks[idx].subtasks.splice(si, 1);
           rebuildSubs();
@@ -973,20 +969,19 @@ function createWeekTaskItem(item, idx) {
   del.textContent = "✕";
   del.addEventListener("click", () => {
     if (S.reportSubmitted) {
-      if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
-      S.reportSubmitted = false;
-      const g = document.getElementById("weekSubmitGuard");
-      if (g) g.remove();
+      showToast("⚠️ 이미 제출된 업무입니다. 삭제할 수 없습니다.", "error");
+      return;
     }
     S.weekTasks.splice(idx, 1);
     renderWeekTasksList();
   });
 
   actions.appendChild(statusBtn);
-  actions.appendChild(del);
+  if (!hasCat) actions.appendChild(del); // hasCat이면 del을 catRow 인라인으로 이동
 
-  // ── 인라인 컨트롤 (hasCat + 세부업무 없을 때 catRow 우측에 표시) ──
+  // ── 인라인 컨트롤 (hasCat이면 항상 catRow 우측에 표시) ──
   if (hasCat && catRow) {
+    div.classList.add("task-has-cat");
     const inlineCtrl = document.createElement("div");
     inlineCtrl.className = "wtc-inline-controls";
 
@@ -1008,6 +1003,8 @@ function createWeekTaskItem(item, idx) {
     applyInlineDateLbl(item.date || "", current);
     iDateWrap.appendChild(iDateLbl);
     iDateWrap.appendChild(iDate);
+    // 진행 상태면 날짜 숨김
+    iDateWrap.style.display = current === "in_progress" ? "none" : "";
 
     iDate.addEventListener("change", (e) => {
       S.weekTasks[idx].date = e.target.value;
@@ -1039,14 +1036,17 @@ function createWeekTaskItem(item, idx) {
         statusBtn.className = `task-status ${key}`;
         statusBtn.textContent = _WEEK_STATUS_LBL[key];
         syncStatusBtnVisibility(key, S.weekTasks[idx].date || "");
+        // 진행 상태면 날짜 숨김, 계획·완료면 표시
+        iDateWrap.style.display = key === "in_progress" ? "none" : "";
       });
       inlineCtrl.appendChild(btn);
     });
 
+    inlineCtrl.appendChild(del); // × 버튼을 catRow 우측에 배치
     catRow.appendChild(inlineCtrl);
   }
 
-  // ── 레이아웃 토글: 세부업무 없으면 인라인 모드 ──────────────────────
+  // ── 레이아웃 토글 ───────────────────────────────────────────────────
   function updateLayout() {
     const hasSubtasks = (S.weekTasks[idx].subtasks || []).length > 0;
     div.classList.toggle("task-no-subs", hasCat && !hasSubtasks);
@@ -1070,10 +1070,11 @@ async function saveReport(submitted = false) {
   const btn = submitted ? $("submitReport") : $("saveReport");
   btn.disabled = true;
   btn.textContent = submitted ? "제출 중..." : "저장 중...";
+  let finalSubmitted;
   try {
     const resBefore = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
     const alreadySubmitted = resBefore[0]?.submitted || false;
-    const finalSubmitted = submitted ? !alreadySubmitted : undefined;
+    finalSubmitted = submitted ? !alreadySubmitted : undefined;
 
     await api("POST", "/api/reports", {
       year,
@@ -1089,12 +1090,37 @@ async function saveReport(submitted = false) {
       $("saveStatus").textContent = "✓ 임시저장 완료";
     }
     setTimeout(() => ($("saveStatus").textContent = ""), 3000);
+
+    // 제출 상태 즉시 UI 반영 (renderDashboard 완료 전에 버튼·배지 선반영)
+    if (submitted) {
+      S.reportSubmitted = !!finalSubmitted;
+      btn.textContent = finalSubmitted ? "제출 취소" : "제출하기";
+      const badge = $("reportStatusBadge");
+      if (badge) {
+        if (finalSubmitted) {
+          badge.className = "status-badge submitted";
+          badge.textContent = "✓ 제출 완료";
+          badge.classList.remove("hidden");
+        } else {
+          badge.className = "status-badge draft";
+          badge.textContent = "📝 임시저장 중 (미제출)";
+          badge.classList.remove("hidden");
+        }
+      }
+      renderWeekSubmitGuard();
+    }
+
     renderDashboard();
   } catch (e) {
     $("saveStatus").textContent = "오류: " + e.message;
+    btn.textContent = submitted ? (finalSubmitted ? "제출 취소" : "제출하기") : "임시저장";
   } finally {
     btn.disabled = false;
-    btn.textContent = submitted ? "제출하기" : "임시저장";
+    if (finalSubmitted === undefined) {
+      // 임시저장 버튼
+      btn.textContent = "임시저장";
+    }
+    // submitted 버튼 텍스트는 위 try 블록에서 이미 처리
   }
 }
 
@@ -4550,17 +4576,24 @@ function wireEvents() {
   });
   $("addWeekTaskBtn").addEventListener("click", () => {
     if (S.reportSubmitted) {
-      if (!confirm("이미 제출했습니다.\n수정하시려면 확인을 눌러주세요.")) return;
-      S.reportSubmitted = false;
-      const g = document.getElementById("weekSubmitGuard");
-      if (g) g.remove();
+      showToast("⚠️ 이미 제출된 업무입니다. 추가할 수 없습니다.", "error");
+      return;
     }
     openTaskModal(null, { addToWeek: true });
   });
   $("sortTasksBtn")?.addEventListener("click", sortMyTasks);
-  $("importWeekTasksBtn").addEventListener("click", () => openTaskImportModal());
-  $("importPrevWeekBtn")?.addEventListener("click", importPrevWeekTasks);
-  $("importLastYearBtn")?.addEventListener("click", importLastYearWeekTasks);
+  $("importWeekTasksBtn").addEventListener("click", () => {
+    if (S.reportSubmitted) { showToast("⚠️ 이미 제출된 업무입니다. 추가할 수 없습니다.", "error"); return; }
+    openTaskImportModal();
+  });
+  $("importPrevWeekBtn")?.addEventListener("click", () => {
+    if (S.reportSubmitted) { showToast("⚠️ 이미 제출된 업무입니다. 추가할 수 없습니다.", "error"); return; }
+    importPrevWeekTasks();
+  });
+  $("importLastYearBtn")?.addEventListener("click", () => {
+    if (S.reportSubmitted) { showToast("⚠️ 이미 제출된 업무입니다. 추가할 수 없습니다.", "error"); return; }
+    importLastYearWeekTasks();
+  });
   $("saveReport").addEventListener("click", () => saveReport(false));
   $("submitReport").addEventListener("click", () => saveReport(true));
   $("taskTargetSel")?.addEventListener("change", async (e) => {
