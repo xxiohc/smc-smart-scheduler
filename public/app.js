@@ -4141,44 +4141,65 @@ function openTaskModal(id, modalOpts = {}) {
     }
     list.innerHTML = "";
     subtasks.forEach((s, i) => {
+      const curSt = s.status || "in_progress";
       const row = document.createElement("div");
-      row.className = "mst-item-v2" + (s.done ? " mst-done" : "");
-      row.innerHTML = `
-        <div class="mst-v2-top">
-          <input type="checkbox" class="mst-cb" data-idx="${i}" ${s.done ? "checked" : ""} />
-          <input type="text" class="mst-text-input" data-idx="${i}" value="${esc(s.text)}" placeholder="세부 업무 내용" />
-          <button class="mst-del" data-idx="${i}" type="button" title="삭제">✕</button>
-        </div>
-        <div class="mst-v2-meta">
-          <select class="mst-status-sel" data-idx="${i}">
-            <option value="waiting"     ${s.status === "waiting"     ? "selected" : ""}>⬜ 대기중</option>
-            <option value="in_progress" ${s.status === "in_progress" ? "selected" : ""}>🔵 진행중</option>
-            <option value="done"        ${s.status === "done"        ? "selected" : ""}>✅ 완료</option>
-          </select>
-          <input type="date" class="mst-date-input" data-idx="${i}" value="${s.due_date || ""}" title="마감일" />
-        </div>
-      `;
-      // 이벤트
-      row.querySelector(".mst-cb").addEventListener("change", (e) => {
-        subtasks[i].done   = e.target.checked;
-        subtasks[i].status = e.target.checked ? "done" : "in_progress";
-        renderMstList();
+      row.className = "mst-item-v2" + (curSt === "done" ? " mst-done" : "");
+
+      // 텍스트 행
+      const topDiv = document.createElement("div");
+      topDiv.className = "mst-v2-top";
+
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.className = "mst-text-input";
+      inp.value = s.text; inp.placeholder = "세부 업무 내용";
+      inp.addEventListener("input", (e) => { subtasks[i].text = e.target.value; });
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "mst-del"; delBtn.type = "button"; delBtn.title = "삭제"; delBtn.textContent = "✕";
+      delBtn.addEventListener("click", () => { subtasks.splice(i, 1); renderMstList(); });
+
+      topDiv.appendChild(inp);
+      topDiv.appendChild(delBtn);
+
+      // 상태 버튼 + 날짜 행
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "mst-v2-meta";
+
+      const stBtns = document.createElement("div");
+      stBtns.className = "mst-st-btns";
+      [["waiting", "계획"], ["in_progress", "진행중"], ["done", "완료"]].forEach(([key, label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tf-st-btn mst-st-btn" + (curSt === key ? " active" : "");
+        btn.dataset.key = key;
+        btn.textContent = label;
+        btn.addEventListener("click", () => {
+          subtasks[i].status = key;
+          subtasks[i].done   = key === "done";
+          row.classList.toggle("mst-done", key === "done");
+          stBtns.querySelectorAll(".mst-st-btn").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          // 진행중이면 날짜 숨김
+          dateWrap.style.display = key === "in_progress" ? "none" : "";
+        });
+        stBtns.appendChild(btn);
       });
-      row.querySelector(".mst-text-input").addEventListener("input", (e) => {
-        subtasks[i].text = e.target.value;
-      });
-      row.querySelector(".mst-status-sel").addEventListener("change", (e) => {
-        subtasks[i].status = e.target.value;
-        subtasks[i].done   = e.target.value === "done";
-        row.classList.toggle("mst-done", subtasks[i].done);
-      });
-      row.querySelector(".mst-date-input").addEventListener("change", (e) => {
-        subtasks[i].due_date = e.target.value;
-      });
-      row.querySelector(".mst-del").addEventListener("click", () => {
-        subtasks.splice(i, 1);
-        renderMstList();
-      });
+
+      const dateWrap = document.createElement("div");
+      dateWrap.className = "mst-date-wrap";
+      dateWrap.style.display = curSt === "in_progress" ? "none" : "";
+
+      const dateIn = document.createElement("input");
+      dateIn.type = "date"; dateIn.className = "mst-date-input";
+      dateIn.value = s.due_date || ""; dateIn.title = "마감일";
+      dateIn.addEventListener("change", (e) => { subtasks[i].due_date = e.target.value; });
+
+      dateWrap.appendChild(dateIn);
+      metaDiv.appendChild(stBtns);
+      metaDiv.appendChild(dateWrap);
+
+      row.appendChild(topDiv);
+      row.appendChild(metaDiv);
       list.appendChild(row);
     });
   }

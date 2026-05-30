@@ -1577,9 +1577,8 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 .mst-item-v2:last-child { border-bottom: none; }
 .mst-item-v2.mst-done { background: var(--bg); opacity: 0.72; }
 .mst-v2-top {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
 }
-.mst-v2-top .mst-cb { accent-color: var(--primary); flex-shrink: 0; }
 .mst-text-input {
   flex: 1; border: none; background: transparent; font-size: 13px;
   color: var(--ink); padding: 2px 4px; outline: none;
@@ -1588,12 +1587,12 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 .mst-text-input:focus { border-bottom-color: var(--primary); }
 .mst-done .mst-text-input { text-decoration: line-through; color: var(--muted); }
 .mst-v2-meta {
-  display: flex; align-items: center; gap: 6px; padding-left: 22px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 8px; padding-left: 4px; flex-wrap: wrap;
 }
-.mst-status-sel {
-  font-size: 11px; border: 1px solid var(--line); border-radius: 4px;
-  padding: 2px 6px; background: var(--surface); color: var(--ink); cursor: pointer;
-}
+.mst-st-btns { display: flex; gap: 4px; }
+/* 세부업무 상태 버튼 — tf-st-btn 기반으로 소형화 */
+.mst-st-btn { padding: 2px 10px !important; font-size: 11px !important; }
+.mst-date-wrap { display: flex; align-items: center; }
 .mst-date-input {
   font-size: 11px; border: 1px solid var(--line); border-radius: 4px;
   padding: 2px 6px; background: var(--surface); color: var(--ink);
