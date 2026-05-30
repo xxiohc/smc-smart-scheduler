@@ -4979,6 +4979,36 @@ async function renderCompilation() {
 
   result.innerHTML = "";
 
+  // subtasks 없는 항목은 해당 주 리포트에서 자동 보완 후 재저장
+  if (items.some(it => !it.subtasks)) {
+    try {
+      const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
+      const reportByName = {};
+      reports.forEach(r => {
+        if (r.member?.name) reportByName[r.member.name] = getReportTasks(r);
+      });
+      let changed = false;
+      items.forEach(it => {
+        if (!it.subtasks) {
+          const tasks = reportByName[it.memberName] || [];
+          const match = tasks.find(t =>
+            (t.cat2 || t.category || "") === (it.cat2 || "") &&
+            (t.cat1 || "") === (it.cat1 || "")
+          );
+          it.subtasks = (match?.subtasks || []).filter(s => s.text?.trim()).map(s => ({
+            text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
+          }));
+          changed = true;
+        }
+      });
+      // 보완된 데이터 서버에 다시 저장
+      if (changed) {
+        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+        await api("PUT", "/api/compilation", { week: weekKey, items });
+      }
+    } catch (e) { /* 보완 실패 시 무시 */ }
+  }
+
   // 해당 주 날짜 범위
   const ws = weekStart(year, week), we = weekEnd(year, week);
   const fmt = (d) => `${d.getMonth()+1}/${d.getDate()}`;
