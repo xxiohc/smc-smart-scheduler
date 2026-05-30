@@ -4861,12 +4861,28 @@ function wireEvents() {
         h1 { font-size: 18px; margin-bottom: 6px; }
         .comp-cat1-section { margin-bottom: 18px; }
         .comp-cat1-head { font-size: 15px; font-weight: 800; border-bottom: 2px solid #3182f6; padding-bottom: 4px; margin-bottom: 8px; color: #1b64da; }
-        .comp-cat2-head { font-size: 13px; font-weight: 700; color: #374151; margin: 8px 0 4px 8px; }
-        .comp-item-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 16px; }
-        .comp-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #3182f6; flex-shrink: 0; }
-        .comp-item-text { flex: 1; font-size: 13px; }
-        .comp-item-meta { font-size: 11px; color: #6b7280; }
-        .comp-item-date { font-size: 11px; color: #6b7280; margin-left: 4px; }
+        .archive-items { display: flex; flex-direction: column; gap: 0; }
+        .archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: #111827; padding: 5px 0; border-bottom: 1px solid #e5e7eb; }
+        .archive-item:last-child { border-bottom: none; }
+        .archive-item-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #9ca3af; margin-top: 6px; }
+        .archive-item.done .archive-item-dot { background: #16a34a; }
+        .archive-item.in_progress .archive-item-dot { background: #3182f6; }
+        .archive-item.hold .archive-item-dot { background: #eab308; }
+        .arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+        .arc-cats { display: flex; align-items: center; gap: 4px; }
+        .arc-cat2 { font-size: 14px; font-weight: 600; color: #111827; }
+        .arc-main-text { font-size: 14px; color: #6b7280; }
+        .archive-task-date { font-size: 12px; color: #6b7280; }
+        .arc-status-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+        .arc-status-badge.done { background: #dcfce7; color: #16a34a; }
+        .arc-status-badge.hold { background: #fef9c3; color: #a16207; }
+        .arc-status-badge.waiting { background: #fef3c7; color: #d97706; }
+        .arc-subs { width: 100%; display: flex; flex-direction: column; gap: 2px; padding-left: 4px; margin-top: 2px; }
+        .arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6b7280; }
+        .arc-sub-row.done .arc-sub-text { text-decoration: line-through; }
+        .arc-sub-dot { width: 4px; height: 4px; border-radius: 50%; background: #d1d5db; }
+        .arc-sub-date { font-size: 11px; color: #9ca3af; }
+        .comp-member-tag { font-size: 11px; color: #6b7280; white-space: nowrap; padding-top: 3px; }
         .comp-item-del, .empty-state { display: none; }
         .empty-icon { display: none; }
       </style>
@@ -4950,81 +4966,72 @@ async function renderCompilation() {
 
   result.innerHTML = "";
 
-  // cat1별 그룹
+  // cat1 → cat2 순서로 그룹핑
   const byCat1 = {};
   items.forEach((item) => {
-    const c = item.cat1 || "기타";
-    if (!byCat1[c]) byCat1[c] = [];
-    byCat1[c].push(item);
+    const c1 = item.cat1 || "기타";
+    if (!byCat1[c1]) byCat1[c1] = [];
+    byCat1[c1].push(item);
   });
 
-  const sLabelComp = { in_progress: "진행중", done: "완료", hold: "보류", waiting: "계획" };
+  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류", waiting: "계획" };
 
   Object.entries(byCat1).forEach(([cat1, catItems]) => {
+    // cat2 순 정렬
+    catItems.sort((a, b) => (a.cat2 || "").localeCompare(b.cat2 || "", "ko"));
+
     const section = document.createElement("div");
     section.className = "comp-cat1-section";
 
+    // cat1 헤더
     const h = document.createElement("div");
     h.className = "comp-cat1-head";
     h.textContent = cat1;
     section.appendChild(h);
 
+    // 아카이빙 스타일 아이템 목록
+    const itemsWrap = document.createElement("div");
+    itemsWrap.className = "archive-items";
+
     catItems.forEach((item) => {
       const st = _WEEK_LEGACY[item.status] || item.status || "in_progress";
-      const subs = (item.subtasks || []).filter(s => s.text?.trim());
       const cat2 = item.cat2 || "";
-      // text가 cat2와 같거나 없으면 별도 텍스트 없음
-      const hasDistinctText = item.text && item.text !== cat2;
-      // 날짜: 진행중이면 숨김
+      const subs = (item.subtasks || []).filter(s => s.text?.trim());
+      const hasMainText = item.text && item.text !== cat2 && item.text !== cat1;
       const dateStr = (item.date && st !== "in_progress") ? item.date.slice(5).replace("-", "/") : "";
+      const inlineDtHtml = dateStr ? `<span class="archive-task-date">(${dateStr})</span>` : "";
+      const showBadge = st !== "in_progress";
+      const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
 
-      // 오른쪽 메타: 세부업무 기준 → 없으면 날짜 → 없으면 상태
-      let rightMeta;
-      if (subs.length > 0) {
-        const doneSubs = subs.filter(s => (_WEEK_LEGACY[s.status] || s.status) === "done");
-        rightMeta = doneSubs.length === subs.length
-          ? "완료"
-          : `${doneSubs.length}/${subs.length} 완료`;
-      } else if (dateStr) {
-        rightMeta = dateStr;
-      } else if (st !== "in_progress") {
-        rightMeta = sLabelComp[st] || st;
-      } else {
-        rightMeta = "진행중";
-      }
+      // cat2 + 날짜 (메인 텍스트 없을 때 인라인)
+      const cat2Html = cat2 ? `<span class="arc-cat2">${esc(cat2)}</span>` : "";
+      const catHtml = cat2Html
+        ? `<div class="arc-cats">${cat2Html}${!hasMainText ? inlineDtHtml : ""}</div>`
+        : "";
 
-      const stCls = st === "done" ? "sub-done" : st === "hold" ? "sub-wait" : "sub-prog";
+      // 메인 텍스트 (cat2와 다를 때만)
+      const mainText = hasMainText
+        ? `<span class="arc-main-text">${esc(item.text)}${inlineDtHtml}</span>` : "";
 
-      const row = document.createElement("div");
-      row.className = "comp-item-row";
-
-      // 메인 텍스트: cat2 [›text] [(date)]
-      const cat2Html = cat2 ? `<span class="comp-cat2-inline">${esc(cat2)}</span>` : "";
-      const sepHtml  = cat2 && hasDistinctText ? `<span class="comp-sep">›</span>` : "";
-      const textHtml = hasDistinctText ? `<span class="comp-item-text">${esc(item.text)}</span>` : "";
-      const dateHtml = dateStr ? `<span class="comp-item-date">(${dateStr})</span>` : "";
-
-      // 세부업무 행
+      // 세부업무
       const subsHtml = subs.length
-        ? `<div class="comp-item-subs">${subs.map(s => {
+        ? `<div class="arc-subs">${subs.map(s => {
             const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
-            const done = sSt === "done" || s.done;
+            const done = s.done || sSt === "done";
             const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
-            return `<div class="comp-sub-row${done ? " done" : ""}">
-              <span class="comp-sub-dot"></span>
-              <span class="comp-sub-text">${esc(s.text)}</span>
-              ${sDate ? `<span class="comp-item-date">(${sDate})</span>` : ""}
-            </div>`;
+            const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
+            return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
           }).join("")}</div>`
         : "";
 
+      const row = document.createElement("div");
+      row.className = `archive-item ${st}`;
       row.innerHTML = `
-        <span class="comp-item-dot ${stCls}"></span>
-        <div class="comp-item-body">
-          <div class="comp-item-main">${cat2Html}${sepHtml}${textHtml}${dateHtml}</div>
-          ${subsHtml}
+        <span class="archive-item-dot"></span>
+        <div class="arc-item-body">
+          ${catHtml}${mainText}${badgeHtml}${subsHtml}
         </div>
-        <span class="comp-item-meta">${esc(item.memberName)} · ${rightMeta}</span>
+        <span class="comp-member-tag">${esc(item.memberName)}</span>
         <button class="comp-item-del" data-id="${item.id}" title="삭제">✕</button>
       `;
       row.querySelector(".comp-item-del").addEventListener("click", async () => {
@@ -5034,9 +5041,10 @@ async function renderCompilation() {
         await api("PUT", "/api/compilation", { week: weekKey, items: updated });
         renderCompilation();
       });
-      section.appendChild(row);
+      itemsWrap.appendChild(row);
     });
 
+    section.appendChild(itemsWrap);
     result.appendChild(section);
   });
 }
