@@ -512,6 +512,7 @@ input, select, textarea { outline: none; }
 .tasks-sel-bar {
   display: flex; align-items: center; gap: 6px;
   margin-top: 14px; margin-bottom: 10px; flex-wrap: wrap;
+  padding-left: 14px;
 }
 .tasks-sel-count { font-size: 12px; color: var(--muted); }
 
