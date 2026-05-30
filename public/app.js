@@ -2162,7 +2162,7 @@ function updateArchiveSelectors() {
   $("archiveQuarter").classList.toggle("hidden", view !== "quarterly");
   $("archivePart").classList.toggle("hidden", view === "yearly");
   $("archiveMember")?.classList.toggle("hidden", view === "yearly");
-  $("archiveDoneOnly").closest("label")?.classList.toggle("hidden", view === "yearly");
+  $("archiveDoneOnly").closest("label")?.classList.remove("hidden"); // 연간 뷰에서도 완료업무 필터 사용 가능
   if (view === "monthly" && !$("archiveMonth").options.length) {
     for (let m = 1; m <= 12; m++) {
       const o = document.createElement("option");
@@ -2186,7 +2186,7 @@ async function doArchiveSearch() {
   const result = $("archiveResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
 
-  if (view === "yearly") { await doAnnualSummary(year, result); return; }
+  if (view === "yearly") { await doYearlyArchive(year, result); return; }
 
   try {
     let url = `/api/reports?year=${year}`;
@@ -2453,7 +2453,7 @@ function exportArchivePdf() {
   let periodStr = `${year}년`;
   if (view === "monthly")    periodStr += ` ${$("archiveMonth").value}월`;
   if (view === "quarterly")  periodStr += ` ${$("archiveQuarter").value}분기`;
-  const viewLabels = { weekly:"주별", monthly:"월별", quarterly:"분기별", yearly:"연간 총평" };
+  const viewLabels = { weekly:"주별", monthly:"월별", quarterly:"분기별", yearly:"연간" };
   const scope = memberName ? memberName : (selectedPart || "전체 파트");
 
   // 현재 result DOM에서 내용 추출
@@ -2693,107 +2693,178 @@ async function openFeedbackModal(member, year, periodType, periodValue) {
   }
 }
 
-async function doAnnualSummary(year, result) {
+async function doYearlyArchive(year, result) {
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
+  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
+  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+  const doneOnly = $("archiveDoneOnly")?.checked || false;
+
+  // 가시 멤버 (권한별)
+  const visibleMembers = isPrivileged
+    ? S.members
+    : S.members.filter((m) => m.id === S.member.id);
+  const PARTS = [...new Set(visibleMembers.map((m) => m.part).filter(Boolean))];
+
+  function weeksRangeLabel(weeks) {
+    if (!weeks || weeks.length === 0) return "";
+    const sorted = [...weeks].sort((a, b) => a - b);
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    if (first === last) {
+      const ws = weekStart(year, first), we = weekEnd(year, first);
+      return `${fmtDate(ws)}~${fmtDate(we)}`;
+    }
+    const ws = weekStart(year, first), we = weekEnd(year, last);
+    return `${fmtDate(ws)}~${fmtDate(we)}`;
+  }
+
   try {
-    const reports = await api("GET", `/api/reports?year=${year}`);
-    const feedbacks = await api("GET", `/api/feedbacks?year=${year}&period_type=yearly`);
-    const fbMap = {};  // target_member_id → [feedbacks]
-    feedbacks.forEach((f) => {
-      if (!fbMap[f.target_member_id]) fbMap[f.target_member_id] = [];
-      fbMap[f.target_member_id].push(f);
-    });
+    let url = `/api/reports?year=${year}`;
+    if (!isPrivileged) url += `&memberId=${encodeURIComponent(S.member.id)}`;
+    const reports = await api("GET", url);
 
-    // 멤버별 집계
-    const statMap = {};
+    if (reports.length === 0) {
+      result.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>조회 결과가 없습니다.</div>';
+      return;
+    }
+
+    // 월별로 리포트 그룹화
+    const byMonth = {};
     reports.forEach((r) => {
-      const mid = r.member_id;
-      if (!statMap[mid]) statMap[mid] = { total: 0, done: 0, in_progress: 0, hold: 0, weeks: new Set() };
-      getReportTasks(r).forEach((t) => {
-        const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
-        statMap[mid].total++;
-        statMap[mid][st] = (statMap[mid][st] || 0) + 1;
-        statMap[mid].weeks.add(r.week);
-      });
+      const m = r.month;
+      if (!m) return;
+      if (!byMonth[m]) byMonth[m] = [];
+      byMonth[m].push(r);
     });
-
-    const isPrivilegedAnnual = S.member.role === "admin" || S.member.role === "leader";
-    // 일반 팀원은 본인 데이터만
-    const visibleMembers = isPrivilegedAnnual ? S.members : S.members.filter((m) => m.id === S.member.id);
-    const PARTS = [...new Set(visibleMembers.map((m) => m.part).filter(Boolean))];
-    const canWrite = isPrivilegedAnnual;
 
     result.innerHTML = "";
-    const block = document.createElement("div");
-    block.className = "archive-week-block";
-    block.innerHTML = `<div class="archive-week-head" style="cursor:default">
-      <span class="archive-week-title">📊 ${year}년 연간 총평</span>
-      <span class="archive-week-meta">${isPrivilegedAnnual ? `전체 ${S.members.length}명` : "내 총평"}</span>
-    </div>`;
 
-    const body = document.createElement("div");
-    body.className = "archive-week-body annual-body";
+    for (let month = 1; month <= 12; month++) {
+      const monthReports = byMonth[month];
+      if (!monthReports || monthReports.length === 0) continue;
 
-    PARTS.forEach((part) => {
-      const partMembers = visibleMembers.filter((m) => m.part === part);
-      const partTitle = document.createElement("div");
-      partTitle.className = "archive-part-title";
-      partTitle.textContent = part;
-      body.appendChild(partTitle);
+      // 멤버별 태스크 집계 (월별 뷰와 동일한 병합 로직)
+      const memberTaskMap = {};
+      monthReports.forEach((r) => {
+        const mid = r.member_id;
+        if (!memberTaskMap[mid]) memberTaskMap[mid] = { member: r.member, tasks: [] };
+        getReportTasks(r).forEach((i) => {
+          if (!i.text) return;
+          const existing = memberTaskMap[mid].tasks.find((t) => t.text === i.text);
+          if (existing) {
+            if (!existing.weeks.includes(r.week)) existing.weeks.push(r.week);
+            const latestWeek = Math.max(...existing.weeks);
+            if (r.week >= latestWeek) existing.status = i.status || existing.status;
+          } else {
+            memberTaskMap[mid].tasks.push({ ...i, weeks: [r.week] });
+          }
+        });
+      });
 
-      partMembers.forEach((m) => {
-        const st = statMap[m.id] || { total: 0, done: 0, in_progress: 0, hold: 0, weeks: new Set() };
-        const doneRate = st.total > 0 ? Math.round((st.done / st.total) * 100) : 0;
-        const mFbs = fbMap[m.id] || [];
+      const hasData = Object.values(memberTaskMap).some((m) => m.tasks.length > 0);
+      if (!hasData) continue;
 
-        const row = document.createElement("div");
-        row.className = "annual-member-row";
-        row.innerHTML = `
-          <div class="annual-member-info">
-            <div class="annual-member-name">${esc(m.name)}</div>
-            <div class="annual-stats">
-              <span class="annual-stat">총 ${st.total}건</span>
-              <span class="annual-stat done">완료 ${st.done}건</span>
-              <span class="annual-stat prog">진행 ${st.in_progress}건</span>
-              <span class="annual-stat rate">${doneRate}%</span>
+      const block = document.createElement("div");
+      block.className = "archive-week-block";
+      const head = document.createElement("div");
+      head.className = "archive-week-head";
+      const dataCount = Object.values(memberTaskMap).filter((m) => m.tasks.length).length;
+      head.innerHTML = `
+        <span class="archive-week-title">${year}년 ${month}월 업무 집계</span>
+        <span class="archive-week-meta">총 ${dataCount}명 데이터</span>
+      `;
+      const bodyEl = document.createElement("div");
+      bodyEl.className = "archive-week-body";
+      head.addEventListener("click", () => bodyEl.classList.toggle("hidden"));
+
+      PARTS.forEach((part) => {
+        const partMembers = visibleMembers.filter((m) => m.part === part);
+        const partMembersFiltered = partMembers.filter(
+          (m) => memberTaskMap[m.id]?.tasks.length > 0
+        );
+        if (partMembersFiltered.length === 0) return;
+
+        const partTitleEl = document.createElement("div");
+        partTitleEl.className = "archive-part-title";
+        partTitleEl.textContent = part;
+        bodyEl.appendChild(partTitleEl);
+
+        partMembersFiltered.forEach((m) => {
+          const allTasks = memberTaskMap[m.id].tasks;
+          const filteredTasks = doneOnly
+            ? allTasks.filter((i) => (_WEEK_LEGACY[i.status] || i.status) === "done" || !!i.date)
+            : allTasks;
+          if (filteredTasks.length === 0) return;
+          const sorted = [...filteredTasks].sort((a, b) => {
+            const wa = Math.min(...(a.weeks || [999]));
+            const wb = Math.min(...(b.weeks || [999]));
+            return wa - wb || (a.text || "").localeCompare(b.text || "", "ko");
+          });
+
+          const row = document.createElement("div");
+          row.className = "archive-member-row";
+          const tasksHtml = sorted.map((i) => {
+            const st = _WEEK_LEGACY[i.status] || i.status || "in_progress";
+            const wLabel = weeksRangeLabel(i.weeks);
+            const dateStr = i.date ? i.date.slice(5).replace("-", "/") : "";
+            const inlineDtHtml = dateStr ? `<span class="archive-task-date">(${dateStr})</span>` : "";
+            const rightDtHtml = !dateStr && wLabel ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
+            const showBadge = !(dateStr && st === "in_progress");
+            const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
+            const cat1Html = i.cat1 ? `<span class="arc-cat1">${esc(i.cat1)}</span>` : "";
+            const cat2Html = i.cat2 || i.category ? `<span class="arc-cat2">${esc(i.cat2 || i.category)}</span>` : "";
+            const catHtml = (cat1Html || cat2Html)
+              ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}${!i.text || i.text === (i.cat2 || i.category) || i.text === i.cat1 ? inlineDtHtml : ""}</div>`
+              : "";
+            const subs = Array.isArray(i.subtasks) ? i.subtasks.filter((s) => s.text?.trim()) : [];
+            const subsHtml = subs.length
+              ? `<div class="arc-subs">${subs.map((s) => {
+                  const done = s.done || (_WEEK_LEGACY[s.status] || s.status) === "done";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span></div>`;
+                }).join("")}</div>`
+              : "";
+            const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
+            const mainText = hasMainText ? `<span class="arc-main-text">${esc(i.text)}${inlineDtHtml}</span>` : "";
+            const _itemJson = JSON.stringify({
+              memberName: m.name || "?", memberPart: m.part || "",
+              cat1: i.cat1 || "", cat2: i.cat2 || i.category || "",
+              text: i.text || "", status: st, date: i.date || "",
+              reportYear: year, reportWeek: 0,
+            }).replace(/"/g, "&quot;");
+            return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
+              <span class="archive-item-dot"></span>
+              <div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>
+              ${rightDtHtml ? `<div class="arc-item-right">${rightDtHtml}</div>` : ""}
+            </div>`;
+          }).join("");
+
+          const canFeedback = isPrivileged;
+          row.innerHTML = `
+            <div class="archive-member-name" data-name="${esc(m.name)}" style="display:flex;align-items:center;justify-content:space-between">
+              <span>${esc(m.name)} <span class="archive-member-part">${esc(m.part)}</span></span>
+              ${canFeedback ? `<button class="btn-ghost small archive-feedback-btn" data-mid="${m.id}" data-name="${esc(m.name)}" data-ptype="monthly" data-pval="${month}" data-year="${year}">💬 피드백</button>` : ""}
             </div>
-          </div>
-          <div class="annual-feedbacks">
-            ${mFbs.length > 0 ? mFbs.map((f) => `
-              <div class="fb-item">
-                <div class="fb-item-head">
-                  <span class="fb-author">${esc(f.author?.name || "?")}</span>
-                  <span class="fb-date">${f.created_at?.slice(0, 10) || ""}</span>
-                  ${(f.author_id === S.member.id || S.member.role === "admin") ? `<button class="btn-danger fb-del-btn" data-id="${f.id}">✕</button>` : ""}
-                </div>
-                <div class="fb-item-text">${esc(f.text).replace(/\n/g, "<br>")}</div>
-              </div>`).join("") : `<div style="font-size:12px;color:var(--muted)">총평 없음</div>`}
-            ${canWrite ? `<button class="btn-ghost small annual-fb-btn" data-mid="${m.id}" data-name="${esc(m.name)}">💬 총평 작성</button>` : ""}
-          </div>
-        `;
-        body.appendChild(row);
+            <div class="archive-items">${tasksHtml}</div>
+          `;
+          bodyEl.appendChild(row);
+        });
       });
-    });
 
-    block.appendChild(body);
-    result.appendChild(block);
+      block.appendChild(head);
+      block.appendChild(bodyEl);
+      result.appendChild(block);
+    }
 
-    // 총평 작성 버튼 이벤트
-    result.querySelectorAll(".annual-fb-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+    if (result.children.length === 0) {
+      result.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>조회 결과가 없습니다.</div>';
+      return;
+    }
+
+    // 피드백 버튼 이벤트
+    result.querySelectorAll(".archive-feedback-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const m = S.members.find((x) => x.id === btn.dataset.mid);
-        await openFeedbackModal(m, year, "yearly", 0);
-        // 모달 닫힌 후 재조회
-        $("modal").addEventListener("click", async (e) => {
-          if (e.target === $("modal")) { setTimeout(() => doAnnualSummary(year, result), 300); }
-        }, { once: true });
-      });
-    });
-    result.querySelectorAll(".fb-del-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("피드백을 삭제하시겠습니까?")) return;
-        try { await api("DELETE", `/api/feedbacks/${btn.dataset.id}`); doAnnualSummary(year, result); }
-        catch (e) { alert(e.message); }
+        openFeedbackModal(m, Number(btn.dataset.year), btn.dataset.ptype, Number(btn.dataset.pval));
       });
     });
   } catch (e) {
