@@ -2364,7 +2364,8 @@ async function doArchiveSearch() {
           const tasksHtml = sorted.map((i) => {
             const st = _WEEK_LEGACY[i.status] || i.status || "in_progress";
             const wLabel = weeksRangeLabel(i.weeks);
-            const dateStr = i.date ? i.date.slice(5).replace("-", "/") : "";
+            // 진행중이면 날짜 숨김 (주간 업무 카드와 동일)
+            const dateStr = (i.date && st !== "in_progress") ? i.date.slice(5).replace("-", "/") : "";
             // 날짜: 텍스트 옆에 인라인
             const inlineDtHtml = dateStr
               ? `<span class="archive-task-date">(${dateStr})</span>`
@@ -2372,8 +2373,8 @@ async function doArchiveSearch() {
             // 주차 범위는 오른쪽에만 (날짜 없을 때)
             const rightDtHtml = !dateStr && wLabel
               ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
-            // 날짜 있고 진행중이면 배지 숨김
-            const showBadge = !(dateStr && st === "in_progress");
+            // 진행중이면 배지 숨김
+            const showBadge = st !== "in_progress";
             const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
             // cat1 / cat2 헤더
             const cat1Html = i.cat1 ? `<span class="arc-cat1">${esc(i.cat1)}</span>` : "";
@@ -2381,12 +2382,15 @@ async function doArchiveSearch() {
             const catHtml = (cat1Html || cat2Html)
               ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}${!i.text || i.text === (i.cat2 || i.category) || i.text === i.cat1 ? inlineDtHtml : ""}</div>`
               : "";
-            // subtasks
+            // subtasks — 기한 표시 추가
             const subs = Array.isArray(i.subtasks) ? i.subtasks.filter(s => s.text?.trim()) : [];
             const subsHtml = subs.length
               ? `<div class="arc-subs">${subs.map(s => {
-                  const done = s.done || (_WEEK_LEGACY[s.status] || s.status) === "done";
-                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span></div>`;
+                  const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+                  const done = s.done || sSt === "done";
+                  const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+                  const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
                 }).join("")}</div>`
               : "";
             const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
@@ -2812,21 +2816,27 @@ async function doYearlyArchive(year, result) {
           const tasksHtml = sorted.map((i) => {
             const st = _WEEK_LEGACY[i.status] || i.status || "in_progress";
             const wLabel = weeksRangeLabel(i.weeks);
-            const dateStr = i.date ? i.date.slice(5).replace("-", "/") : "";
+            // 진행중이면 날짜 숨김
+            const dateStr = (i.date && st !== "in_progress") ? i.date.slice(5).replace("-", "/") : "";
             const inlineDtHtml = dateStr ? `<span class="archive-task-date">(${dateStr})</span>` : "";
             const rightDtHtml = !dateStr && wLabel ? `<span class="archive-task-weeks">${wLabel}</span>` : "";
-            const showBadge = !(dateStr && st === "in_progress");
+            // 진행중이면 배지 숨김
+            const showBadge = st !== "in_progress";
             const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
             const cat1Html = i.cat1 ? `<span class="arc-cat1">${esc(i.cat1)}</span>` : "";
             const cat2Html = i.cat2 || i.category ? `<span class="arc-cat2">${esc(i.cat2 || i.category)}</span>` : "";
             const catHtml = (cat1Html || cat2Html)
               ? `<div class="arc-cats">${cat1Html}${cat1Html && cat2Html ? `<span class="arc-cat-sep">›</span>` : ""}${cat2Html}${!i.text || i.text === (i.cat2 || i.category) || i.text === i.cat1 ? inlineDtHtml : ""}</div>`
               : "";
+            // subtasks — 기한 표시 추가
             const subs = Array.isArray(i.subtasks) ? i.subtasks.filter((s) => s.text?.trim()) : [];
             const subsHtml = subs.length
               ? `<div class="arc-subs">${subs.map((s) => {
-                  const done = s.done || (_WEEK_LEGACY[s.status] || s.status) === "done";
-                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span></div>`;
+                  const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+                  const done = s.done || sSt === "done";
+                  const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+                  const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
                 }).join("")}</div>`
               : "";
             const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
