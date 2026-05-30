@@ -932,8 +932,8 @@ input, select, textarea { outline: none; }
   padding: 14px 20px; border-bottom: 1px solid var(--line);
   cursor: pointer; user-select: none;
 }
-.archive-week-title { font-size: 15px; font-weight: 700; }
-.archive-week-meta { font-size: 12px; color: var(--muted); }
+.archive-week-title { font-size: 16px; font-weight: 700; }
+.archive-week-meta { font-size: 13px; color: var(--muted); }
 .archive-week-body { padding: 0; }
 .archive-member-row {
   border-bottom: 1px solid var(--line); padding: 10px 20px;
@@ -943,35 +943,35 @@ input, select, textarea { outline: none; }
 .archive-member-part { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
 .archive-results-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 .archive-items { display: flex; flex-direction: column; gap: 0; margin-bottom: 4px; }
-.archive-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); padding: 3px 0; border-bottom: 1px solid var(--line); }
+.archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); padding: 5px 0; border-bottom: 1px solid var(--line); }
 .archive-item:last-child { border-bottom: none; }
-.archive-item-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+.archive-item-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--muted); margin-top: 6px; }
 .archive-item.done .archive-item-dot        { background: var(--good); }
 .archive-item.in_progress .archive-item-dot { background: var(--primary); }
 .archive-item.hold .archive-item-dot        { background: var(--yellow); }
 .archive-item.partial .archive-item-dot     { background: var(--yellow); }
 /* arc item layout */
-.arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.arc-item-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+.arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.arc-item-right { display: none; } /* 날짜를 인라인으로 이동 — 오른쪽 플로팅 제거 */
 /* cat breadcrumb */
 .arc-cats { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
-.arc-cat1 { font-size: 13px; font-weight: 700; color: var(--primary); }
-.arc-cat-sep { font-size: 11px; color: var(--muted); }
-.arc-cat2 { font-size: 13px; font-weight: 600; color: var(--ink); }
+.arc-cat1 { font-size: 14px; font-weight: 700; color: var(--primary); }
+.arc-cat-sep { font-size: 12px; color: var(--muted); }
+.arc-cat2 { font-size: 14px; font-weight: 600; color: var(--ink); }
 /* main text (세부업무) */
-.arc-main-text { font-size: 13px; color: var(--subtle); }
+.arc-main-text { font-size: 14px; color: var(--subtle); }
 /* subtasks */
-.arc-subs { display: flex; flex-direction: column; gap: 1px; padding-left: 4px; width: 100%; }
-.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--subtle); }
+.arc-subs { display: flex; flex-direction: column; gap: 2px; padding-left: 4px; width: 100%; margin-top: 2px; }
+.arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--subtle); }
 .arc-sub-row.done .arc-sub-text { text-decoration: line-through; color: var(--muted); }
 .arc-sub-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--line-strong); }
 /* status badge — 텍스트 옆 인라인 */
-.arc-status-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
+.arc-status-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; }
 .arc-status-badge.done        { background: #dcfce7; color: var(--good); }
 .arc-status-badge.in_progress { background: var(--primary-soft); color: var(--primary); }
 .arc-status-badge.hold        { background: #fef9c3; color: #a16207; }
 .arc-status-badge.partial     { background: #fef9c3; color: #a16207; }
-.archive-note { font-size: 12px; color: var(--subtle); margin-top: 2px; font-style: italic; }
+.archive-note { font-size: 13px; color: var(--subtle); margin-top: 4px; font-style: italic; }
 
 /* ── Member table (admin) ────────────────────────────────── */
 .member-table {
@@ -1637,14 +1637,14 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   display: flex; align-items: flex-start; gap: 8px;
   font-size: 13px; color: var(--ink); padding: 3px 0;
 }
-.archive-task-date  { font-size: 11px; color: var(--muted); margin-left: 4px; flex-shrink: 0; }
+.archive-task-date  { font-size: 12px; color: var(--muted); margin-left: 2px; flex-shrink: 0; }
 .archive-task-weeks {
-  font-size: 11px; font-weight: 600; margin-left: 6px; flex-shrink: 0;
-  padding: 1px 7px; border-radius: 10px;
+  font-size: 12px; font-weight: 600; margin-left: 2px; flex-shrink: 0;
+  padding: 2px 8px; border-radius: 10px;
   background: var(--primary-soft); color: var(--primary);
 }
 .archive-part-title {
-  font-size: 12px; font-weight: 700; color: var(--muted);
+  font-size: 13px; font-weight: 700; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.04em;
   padding: 10px 20px 6px; background: var(--bg);
   border-bottom: 1px solid var(--line);

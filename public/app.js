@@ -2398,9 +2398,8 @@ async function doArchiveSearch() {
             return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
               <span class="archive-item-dot"></span>
               <div class="arc-item-body">
-                ${catHtml}${mainText}${badgeHtml}${subsHtml}
+                ${catHtml}${mainText}${badgeHtml}${rightDtHtml}${subsHtml}
               </div>
-              ${rightDtHtml ? `<div class="arc-item-right">${rightDtHtml}</div>` : ""}
             </div>`;
           }).join("");
           const canFeedback = S.member.role === "admin" || S.member.role === "leader";
@@ -2832,8 +2831,7 @@ async function doYearlyArchive(year, result) {
             }).replace(/"/g, "&quot;");
             return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
               <span class="archive-item-dot"></span>
-              <div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>
-              ${rightDtHtml ? `<div class="arc-item-right">${rightDtHtml}</div>` : ""}
+              <div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${rightDtHtml}${subsHtml}</div>
             </div>`;
           }).join("");
 
