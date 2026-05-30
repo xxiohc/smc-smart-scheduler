@@ -1989,17 +1989,28 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 .compilation-result { margin-top: 16px; }
 .comp-cat1-section { background: var(--surface); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
 .comp-cat1-head { font-size: 15px; font-weight: 800; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 6px; margin-bottom: 10px; }
-.comp-cat2-head { font-size: 13px; font-weight: 700; color: var(--subtle); margin: 10px 0 4px 4px; }
-.comp-item-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px 5px 12px; border-radius: 6px; }
+.comp-item-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px 6px 8px; border-radius: 6px; }
 .comp-item-row:hover { background: var(--bg); }
-.comp-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.comp-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
 .comp-item-dot.sub-prog { background: var(--primary); }
 .comp-item-dot.sub-done { background: var(--good); }
 .comp-item-dot.sub-wait { background: var(--yellow); }
-.comp-item-text { flex: 1; font-size: 13px; color: var(--ink); }
-.comp-item-date { font-size: 11px; color: var(--muted); margin-left: 4px; }
-.comp-item-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.comp-item-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+/* 메인 본문 영역 */
+.comp-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.comp-item-main { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.comp-cat2-inline { font-size: 14px; font-weight: 700; color: var(--ink); }
+.comp-sep { font-size: 12px; color: var(--muted); }
+.comp-item-text { font-size: 13px; color: var(--subtle); }
+.comp-item-date { font-size: 12px; color: var(--muted); }
+/* 세부업무 */
+.comp-item-subs { display: flex; flex-direction: column; gap: 2px; padding-left: 4px; }
+.comp-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--subtle); }
+.comp-sub-row.done .comp-sub-text { text-decoration: line-through; color: var(--muted); }
+.comp-sub-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--line-strong); }
+.comp-sub-text { font-size: 12px; }
+/* 오른쪽 메타 */
+.comp-item-meta { font-size: 12px; color: var(--muted); white-space: nowrap; flex-shrink: 0; padding-top: 3px; }
+.comp-item-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
 .comp-item-del:hover { color: var(--warn); background: #fee2e2; }
 
 /* ═══════════════════════════════════════════════════════════

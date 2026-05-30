@@ -2406,6 +2406,9 @@ async function doArchiveSearch() {
               date: i.date || "",
               reportYear: targetYear,
               reportWeek: 0,
+              subtasks: (i.subtasks || []).filter(s => s.text?.trim()).map(s => ({
+                text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
+              })),
             }).replace(/"/g, "&quot;");
             return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
               <span class="archive-item-dot"></span>
@@ -2846,6 +2849,9 @@ async function doYearlyArchive(year, result) {
               cat1: i.cat1 || "", cat2: i.cat2 || i.category || "",
               text: i.text || "", status: st, date: i.date || "",
               reportYear: year, reportWeek: 0,
+              subtasks: (i.subtasks || []).filter(s => s.text?.trim()).map(s => ({
+                text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
+              })),
             }).replace(/"/g, "&quot;");
             return `<div class="archive-item ${st}" data-date="${esc(dateStr)}" data-item="${_itemJson}">
               <span class="archive-item-dot"></span>
@@ -4919,7 +4925,7 @@ async function renderCompilation() {
     byCat1[c].push(item);
   });
 
-  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+  const sLabelComp = { in_progress: "진행중", done: "완료", hold: "보류", waiting: "계획" };
 
   Object.entries(byCat1).forEach(([cat1, catItems]) => {
     const section = document.createElement("div");
@@ -4930,42 +4936,72 @@ async function renderCompilation() {
     h.textContent = cat1;
     section.appendChild(h);
 
-    // cat2 그룹
-    const byCat2 = {};
     catItems.forEach((item) => {
-      const c2 = item.cat2 || "";
-      if (!byCat2[c2]) byCat2[c2] = [];
-      byCat2[c2].push(item);
-    });
+      const st = _WEEK_LEGACY[item.status] || item.status || "in_progress";
+      const subs = (item.subtasks || []).filter(s => s.text?.trim());
+      const cat2 = item.cat2 || "";
+      // text가 cat2와 같거나 없으면 별도 텍스트 없음
+      const hasDistinctText = item.text && item.text !== cat2;
+      // 날짜: 진행중이면 숨김
+      const dateStr = (item.date && st !== "in_progress") ? item.date.slice(5).replace("-", "/") : "";
 
-    Object.entries(byCat2).forEach(([cat2, c2Items]) => {
-      if (cat2) {
-        const c2h = document.createElement("div");
-        c2h.className = "comp-cat2-head";
-        c2h.textContent = cat2;
-        section.appendChild(c2h);
+      // 오른쪽 메타: 세부업무 기준 → 없으면 날짜 → 없으면 상태
+      let rightMeta;
+      if (subs.length > 0) {
+        const doneSubs = subs.filter(s => (_WEEK_LEGACY[s.status] || s.status) === "done");
+        rightMeta = doneSubs.length === subs.length
+          ? "완료"
+          : `${doneSubs.length}/${subs.length} 완료`;
+      } else if (dateStr) {
+        rightMeta = dateStr;
+      } else if (st !== "in_progress") {
+        rightMeta = sLabelComp[st] || st;
+      } else {
+        rightMeta = "진행중";
       }
 
-      c2Items.forEach((item) => {
-        const row = document.createElement("div");
-        row.className = "comp-item-row";
-        const stCls = item.status === "done" ? "sub-done" : item.status === "hold" ? "sub-wait" : "sub-prog";
-        const dateStr = item.date ? `<span class="comp-item-date">(${item.date.slice(5).replace("-", "/")})</span>` : "";
-        row.innerHTML = `
-          <span class="comp-item-dot ${stCls}"></span>
-          <span class="comp-item-text">${esc(item.text)}${dateStr}</span>
-          <span class="comp-item-meta">${esc(item.memberName)} · ${sLabel[item.status] || item.status}</span>
-          <button class="comp-item-del" data-id="${item.id}" title="삭제">✕</button>
-        `;
-        row.querySelector(".comp-item-del").addEventListener("click", async () => {
-          const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
-          const cur = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
-          const updated = cur.filter((e) => e.id !== item.id);
-          await api("PUT", "/api/compilation", { week: weekKey, items: updated });
-          renderCompilation();
-        });
-        section.appendChild(row);
+      const stCls = st === "done" ? "sub-done" : st === "hold" ? "sub-wait" : "sub-prog";
+
+      const row = document.createElement("div");
+      row.className = "comp-item-row";
+
+      // 메인 텍스트: cat2 [›text] [(date)]
+      const cat2Html = cat2 ? `<span class="comp-cat2-inline">${esc(cat2)}</span>` : "";
+      const sepHtml  = cat2 && hasDistinctText ? `<span class="comp-sep">›</span>` : "";
+      const textHtml = hasDistinctText ? `<span class="comp-item-text">${esc(item.text)}</span>` : "";
+      const dateHtml = dateStr ? `<span class="comp-item-date">(${dateStr})</span>` : "";
+
+      // 세부업무 행
+      const subsHtml = subs.length
+        ? `<div class="comp-item-subs">${subs.map(s => {
+            const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+            const done = sSt === "done" || s.done;
+            const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+            return `<div class="comp-sub-row${done ? " done" : ""}">
+              <span class="comp-sub-dot"></span>
+              <span class="comp-sub-text">${esc(s.text)}</span>
+              ${sDate ? `<span class="comp-item-date">(${sDate})</span>` : ""}
+            </div>`;
+          }).join("")}</div>`
+        : "";
+
+      row.innerHTML = `
+        <span class="comp-item-dot ${stCls}"></span>
+        <div class="comp-item-body">
+          <div class="comp-item-main">${cat2Html}${sepHtml}${textHtml}${dateHtml}</div>
+          ${subsHtml}
+        </div>
+        <span class="comp-item-meta">${esc(item.memberName)} · ${rightMeta}</span>
+        <button class="comp-item-del" data-id="${item.id}" title="삭제">✕</button>
+      `;
+      row.querySelector(".comp-item-del").addEventListener("click", async () => {
+        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+        const cur = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
+        const updated = cur.filter((e) => e.id !== item.id);
+        await api("PUT", "/api/compilation", { week: weekKey, items: updated });
+        renderCompilation();
       });
+      section.appendChild(row);
     });
 
     result.appendChild(section);
