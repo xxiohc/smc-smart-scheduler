@@ -5237,15 +5237,19 @@ async function renderCompilation() {
     const subs = (item.subtasks || []).filter(s => s.text?.trim());
     const hasMainText = item.text && item.text !== cat2 && item.text !== (item.cat1 || "");
 
-    const showBadge = st !== "in_progress";
+    // 계획(waiting)·진행(in_progress)은 뱃지 숨김
+    const showBadge = st !== "in_progress" && st !== "waiting";
     const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
 
-    // cat2 · 담당자 · 상태표시 한 줄에
-    // 진행중이면 날짜 대신 "진행" 텍스트만, 그 외에는 날짜범위
+    // cat2 · 담당자 · 날짜/상태 한 줄에
+    // in_progress: "진행" 칩 / waiting: 계획일자 표시 (날짜 없으면 숨김) / 그 외: 주간범위
     const memberHtml = item.memberName ? `<span class="comp-member-inline">${esc(item.memberName)}</span>` : "";
+    const itemDate = item.date ? item.date.slice(5).replace("-", "/") : "";
     const wkHtml = st === "in_progress"
       ? `<span class="comp-status-prog">진행</span>`
-      : `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
+      : st === "waiting"
+        ? (itemDate ? `<span class="archive-task-weeks">${itemDate}</span>` : "")
+        : `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
 
     const cat2Html = cat2 ? `<span class="arc-cat2">${esc(cat2)}</span>` : "";
     // 본문 텍스트가 없으면 cat2 행에 담당자+날짜 인라인
