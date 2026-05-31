@@ -242,7 +242,6 @@
               <button id="compNextWeek" class="btn-ghost icon-btn">&#8594;</button>
             </div>
             <span id="compWeekLabel" class="week-label"></span>
-            <button id="compPriorityBtn" class="btn-ghost hidden" title="카테고리 우선순위 설정">&#9776; 우선순위</button>
             <button id="compRefreshBtn" class="btn-ghost" title="최신 데이터 새로고침">&#8635; 새로고침</button>
             <button id="compPdfBtn" class="btn-ghost">&#128196; PDF 내보내기</button>
           </div>
@@ -448,21 +447,6 @@
   </div>
 </div>
 
-<!-- 카테고리 우선순위 모달 -->
-<div id="catPriorityModal" class="modal-overlay hidden">
-  <div class="modal-card cat-priority-modal">
-    <div class="modal-header">
-      <span class="modal-title">&#9776; 카테고리 우선순위 설정</span>
-      <button id="catPriorityClose" class="modal-close">&#x2715;</button>
-    </div>
-    <p class="cat-priority-desc">각 파트의 카테고리를 드래그하거나 ↑↓ 버튼으로 순서를 조정하세요. 저장하면 주차별 취합 기본 정렬에 적용됩니다.</p>
-    <div id="catPriorityBody" class="cat-priority-body"></div>
-    <div class="modal-footer">
-      <button id="catPriorityCancel" class="btn-ghost">취소</button>
-      <button id="catPrioritySave" class="btn-primary">저장</button>
-    </div>
-  </div>
-</div>
 
 <script src="/app.js"></script>
 </body>
