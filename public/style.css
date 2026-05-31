@@ -2042,6 +2042,57 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 #compilationResult .archive-item { align-items: flex-start; cursor: default; }
 #compilationResult .comp-item-del { margin-top: 1px; }
 
+/* ── 4열 파트 컬럼 ─────────────────────────────────────── */
+.comp-parts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.comp-part-col {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.comp-part-col-head {
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 14px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+/* 컬럼 안 섹션 카드: 좌우 패딩 줄이고 그림자 제거 */
+.comp-part-col .comp-cat1-section {
+  background: none;
+  border-radius: 0;
+  padding: 10px 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+}
+.comp-part-col .comp-cat1-section:last-child { border-bottom: none; }
+.comp-part-col .comp-cat1-head {
+  font-size: 13px;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+/* 컬럼 안 archive-item: 글자 살짝 축소 */
+.comp-part-col .archive-item { padding: 5px 4px; }
+.comp-part-col .arc-cat2 { font-size: 13px; }
+.comp-part-col .arc-main-text { font-size: 13px; }
+.comp-part-col .comp-member-inline { font-size: 11px; }
+.comp-part-col .archive-task-weeks { font-size: 11px; }
+.comp-col-empty {
+  padding: 20px 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* ═══════════════════════════════════════════════════════════
    FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)
    원본값은 주석으로 보존. 되돌리려면 이 블록 전체 제거.

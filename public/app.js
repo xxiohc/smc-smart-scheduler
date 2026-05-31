@@ -5095,35 +5095,67 @@ async function renderCompilation() {
     return row;
   };
 
-  // ── cat1 그룹 → 아이템 (담당자는 각 항목에 인라인) ────────────
-  const byCat1 = {};
-  items.forEach((item) => {
+  // ── 4열 파트 컬럼 레이아웃 ────────────────────────────────────
+  const COMP_PARTS = ["구매파트", "의공파트", "재무관리파트", "경영관리파트"];
+
+  // 파트 → cat1 → items 그룹화
+  const byPart = {};
+  COMP_PARTS.forEach(p => { byPart[p] = {}; });
+  items.forEach(item => {
+    const part = COMP_PARTS.includes(item.memberPart) ? item.memberPart : COMP_PARTS[COMP_PARTS.length - 1];
     const c1 = item.cat1 || "기타";
-    if (!byCat1[c1]) byCat1[c1] = [];
-    byCat1[c1].push(item);
+    if (!byPart[part][c1]) byPart[part][c1] = [];
+    byPart[part][c1].push(item);
   });
 
-  Object.entries(byCat1).forEach(([cat1, catItems]) => {
-    catItems.sort((a, b) =>
-      (a.cat2 || "").localeCompare(b.cat2 || "", "ko") ||
-      (a.memberName || "").localeCompare(b.memberName || "", "ko")
-    );
+  const grid = document.createElement("div");
+  grid.className = "comp-parts-grid";
 
-    const section = document.createElement("div");
-    section.className = "comp-cat1-section";
+  COMP_PARTS.forEach(part => {
+    const col = document.createElement("div");
+    col.className = "comp-part-col";
 
-    const catHead = document.createElement("div");
-    catHead.className = "comp-cat1-head";
-    catHead.textContent = cat1;
-    section.appendChild(catHead);
+    const colHead = document.createElement("div");
+    colHead.className = "comp-part-col-head";
+    colHead.textContent = part;
+    col.appendChild(colHead);
 
-    const itemsWrap = document.createElement("div");
-    itemsWrap.className = "archive-items";
-    catItems.forEach((item) => itemsWrap.appendChild(makeItemRow(item)));
-    section.appendChild(itemsWrap);
+    const cat1Map = byPart[part];
+    const cat1Keys = Object.keys(cat1Map).sort((a, b) => a.localeCompare(b, "ko"));
 
-    result.appendChild(section);
+    if (cat1Keys.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "comp-col-empty";
+      empty.textContent = "항목 없음";
+      col.appendChild(empty);
+    } else {
+      cat1Keys.forEach(cat1 => {
+        const catItems = cat1Map[cat1];
+        catItems.sort((a, b) =>
+          (a.cat2 || "").localeCompare(b.cat2 || "", "ko") ||
+          (a.memberName || "").localeCompare(b.memberName || "", "ko")
+        );
+
+        const section = document.createElement("div");
+        section.className = "comp-cat1-section";
+
+        const catHead = document.createElement("div");
+        catHead.className = "comp-cat1-head";
+        catHead.textContent = cat1;
+        section.appendChild(catHead);
+
+        const itemsWrap = document.createElement("div");
+        itemsWrap.className = "archive-items";
+        catItems.forEach(item => itemsWrap.appendChild(makeItemRow(item)));
+        section.appendChild(itemsWrap);
+        col.appendChild(section);
+      });
+    }
+
+    grid.appendChild(col);
   });
+
+  result.appendChild(grid);
 }
 
 /* ── Boot ─────────────────────────────────────────────── */
