@@ -3594,6 +3594,8 @@ const DEFAULT_PART_CATEGORIES = {
 
 // 런타임 카테고리 (서버에서 로드, fallback은 DEFAULT_PART_CATEGORIES)
 let PART_CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_PART_CATEGORIES));
+// 카테고리(1) 우선순위: { "파트명": ["cat1", "cat1", ...], ... }
+let CAT_PRIORITY = {};
 
 async function fetchCategories() {
   try {
@@ -3602,6 +3604,9 @@ async function fetchCategories() {
       PART_CATEGORIES = data;
     }
   } catch (e) { /* 서버 카테고리 없으면 기본값 유지 */ }
+  try {
+    CAT_PRIORITY = await api("GET", "/api/cat-priority") || {};
+  } catch (e) { /* 우선순위 없으면 빈 객체 */ }
 }
 
 /**
@@ -4919,6 +4924,12 @@ function wireEvents() {
     renderCompilation();
     showToast("✅ 최신 데이터로 갱신됐습니다.");
   });
+
+  // 우선순위 모달
+  $("compPriorityBtn").addEventListener("click", openCatPriorityModal);
+  $("catPriorityClose").addEventListener("click", closeCatPriorityModal);
+  $("catPriorityCancel").addEventListener("click", closeCatPriorityModal);
+  $("catPrioritySave").addEventListener("click", saveCatPriority);
   $("compThisWeek").addEventListener("click", () => {
     S.comp = { ...S.comp, year: S.dash.year, week: S.dash.week };
     renderCompilation();
@@ -5100,10 +5111,154 @@ function populateCompileWeekSelect() {
   }
 }
 
+/* ── 카테고리 우선순위 모달 ──────────────────────────────── */
+const COMP_PARTS_ORDER = ["구매파트", "의공파트", "재무관리파트", "경영관리파트"];
+
+function openCatPriorityModal() {
+  const body = $("catPriorityBody");
+  body.innerHTML = "";
+
+  COMP_PARTS_ORDER.forEach(part => {
+    // PART_CATEGORIES에서 알려진 cat1 목록 + 현재 CAT_PRIORITY 순서
+    const known = Object.keys(PART_CATEGORIES[part] || {});
+    const prioList = (CAT_PRIORITY[part] || []).filter(c => known.includes(c));
+    // prioList에 없는 항목을 가나다순으로 뒤에 추가
+    known.forEach(c => { if (!prioList.includes(c)) prioList.push(c); });
+
+    const col = document.createElement("div");
+    col.className = "cpri-col";
+    col.dataset.part = part;
+
+    const colHead = document.createElement("div");
+    colHead.className = "cpri-col-head";
+    colHead.textContent = part;
+    col.appendChild(colHead);
+
+    const list = document.createElement("div");
+    list.className = "cpri-list";
+    list.dataset.part = part;
+
+    let dragSrcIdx = null;
+
+    const buildItems = () => {
+      list.innerHTML = "";
+      prioList.forEach((cat1, idx) => {
+        const item = document.createElement("div");
+        item.className = "cpri-item";
+        item.draggable = true;
+        item.dataset.idx = idx;
+
+        const num = document.createElement("span");
+        num.className = "cpri-num";
+        num.textContent = idx + 1;
+
+        const label = document.createElement("span");
+        label.className = "cpri-label";
+        label.textContent = cat1;
+
+        const arrows = document.createElement("div");
+        arrows.className = "cpri-arrows";
+
+        const up = document.createElement("button");
+        up.textContent = "↑";
+        up.className = "cpri-arrow";
+        up.disabled = idx === 0;
+        up.addEventListener("click", () => {
+          if (idx === 0) return;
+          [prioList[idx-1], prioList[idx]] = [prioList[idx], prioList[idx-1]];
+          buildItems();
+        });
+
+        const dn = document.createElement("button");
+        dn.textContent = "↓";
+        dn.className = "cpri-arrow";
+        dn.disabled = idx === prioList.length - 1;
+        dn.addEventListener("click", () => {
+          if (idx === prioList.length - 1) return;
+          [prioList[idx], prioList[idx+1]] = [prioList[idx+1], prioList[idx]];
+          buildItems();
+        });
+
+        arrows.appendChild(up);
+        arrows.appendChild(dn);
+
+        item.appendChild(num);
+        item.appendChild(label);
+        item.appendChild(arrows);
+
+        // 드래그앤드롭
+        item.addEventListener("dragstart", (e) => {
+          dragSrcIdx = idx;
+          e.dataTransfer.effectAllowed = "move";
+          setTimeout(() => item.classList.add("cpri-dragging"), 0);
+        });
+        item.addEventListener("dragend", () => {
+          item.classList.remove("cpri-dragging");
+          list.querySelectorAll(".cpri-drag-over").forEach(el => el.classList.remove("cpri-drag-over"));
+          dragSrcIdx = null;
+        });
+        item.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          if (dragSrcIdx === null || dragSrcIdx === idx) return;
+          list.querySelectorAll(".cpri-drag-over").forEach(el => el.classList.remove("cpri-drag-over"));
+          item.classList.add("cpri-drag-over");
+        });
+        item.addEventListener("dragleave", (e) => {
+          if (!item.contains(e.relatedTarget)) item.classList.remove("cpri-drag-over");
+        });
+        item.addEventListener("drop", (e) => {
+          e.preventDefault();
+          item.classList.remove("cpri-drag-over");
+          if (dragSrcIdx === null || dragSrcIdx === idx) return;
+          const moved = prioList.splice(dragSrcIdx, 1)[0];
+          prioList.splice(idx, 0, moved);
+          buildItems();
+        });
+
+        list.appendChild(item);
+      });
+    };
+
+    buildItems();
+    col.appendChild(list);
+
+    // prioList 참조 보존용 (저장 시 사용)
+    col._prioList = prioList;
+    body.appendChild(col);
+  });
+
+  $("catPriorityModal").classList.remove("hidden");
+}
+
+function closeCatPriorityModal() {
+  $("catPriorityModal").classList.add("hidden");
+}
+
+async function saveCatPriority() {
+  const body = $("catPriorityBody");
+  const newPriority = {};
+  body.querySelectorAll(".cpri-col").forEach(col => {
+    const part = col.dataset.part;
+    newPriority[part] = [...col.querySelectorAll(".cpri-label")].map(el => el.textContent);
+  });
+  try {
+    await api("PUT", "/api/cat-priority", newPriority);
+    CAT_PRIORITY = newPriority;
+    closeCatPriorityModal();
+    renderCompilation();
+    showToast("✅ 우선순위가 저장됐습니다.");
+  } catch (e) {
+    showToast("저장 실패: " + e.message, "error");
+  }
+}
+
 async function renderCompilation() {
   if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
   const { year, week } = S.comp;
   $("compWeekLabel").textContent = weekLabel(year, week);
+
+  // 팀장에게만 우선순위 버튼 표시
+  $("compPriorityBtn")?.classList.toggle("hidden", S.member.role !== "admin");
 
   const result = $("compilationResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -5258,13 +5413,22 @@ async function renderCompilation() {
 
     const cat1Map = byPart[part];
 
-    // currentOrder[part] 기준으로 정렬, 없는 항목은 가나다순 뒤에
+    // 정렬 우선순위:
+    // 1) 해당 주 drag-drop 순서 (currentOrder[part])
+    // 2) 전역 우선순위 (CAT_PRIORITY[part])
+    // 3) 가나다순
     const cat1Keys = Object.keys(cat1Map).sort((a, b) => {
-      const ord = currentOrder[part] || [];
-      const ai = ord.indexOf(a), bi = ord.indexOf(b);
+      const weekOrd = currentOrder[part] || [];
+      const ai = weekOrd.indexOf(a), bi = weekOrd.indexOf(b);
       if (ai >= 0 && bi >= 0) return ai - bi;
       if (ai >= 0) return -1;
       if (bi >= 0) return 1;
+      // 전역 우선순위
+      const prioOrd = CAT_PRIORITY[part] || [];
+      const pi = prioOrd.indexOf(a), qi = prioOrd.indexOf(b);
+      if (pi >= 0 && qi >= 0) return pi - qi;
+      if (pi >= 0) return -1;
+      if (qi >= 0) return 1;
       return a.localeCompare(b, "ko");
     });
 

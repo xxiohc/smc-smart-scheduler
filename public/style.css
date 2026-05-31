@@ -2052,6 +2052,24 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 #compilationResult .archive-item { align-items: flex-start; cursor: default; }
 #compilationResult .comp-item-del { margin-top: 1px; }
 
+/* ── 카테고리 우선순위 모달 ────────────────────────────── */
+.cat-priority-modal { width: min(960px, 96vw); max-height: 80vh; overflow-y: auto; }
+.cat-priority-desc { font-size: 13px; color: var(--muted); margin: -4px 0 16px; }
+.cat-priority-body { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
+.cpri-col { border: 1.5px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.cpri-col-head { background: var(--primary); color: #fff; font-size: 13px; font-weight: 700; padding: 8px 12px; text-align: center; }
+.cpri-list { padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; min-height: 60px; }
+.cpri-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; background: var(--bg); border: 1.5px solid var(--line); cursor: grab; user-select: none; transition: background 0.1s; }
+.cpri-item:hover { background: var(--primary-soft); border-color: var(--primary); }
+.cpri-item.cpri-dragging { opacity: 0.4; }
+.cpri-item.cpri-drag-over { outline: 2px dashed var(--primary); outline-offset: -2px; background: #eff6ff; }
+.cpri-num { font-size: 12px; font-weight: 800; color: var(--primary); width: 18px; text-align: center; flex-shrink: 0; }
+.cpri-label { flex: 1; font-size: 13px; font-weight: 600; color: var(--ink); }
+.cpri-arrows { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+.cpri-arrow { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--muted); padding: 1px 3px; border-radius: 3px; line-height: 1; }
+.cpri-arrow:hover:not(:disabled) { color: var(--primary); background: var(--primary-soft); }
+.cpri-arrow:disabled { opacity: 0.2; cursor: default; }
+
 /* ── 4열 파트 컬럼 ─────────────────────────────────────── */
 .comp-parts-grid {
   display: grid;

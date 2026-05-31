@@ -1015,6 +1015,23 @@ async function handleGetCategories(req, res) {
   json(res, db.categories || {});
 }
 
+async function handleGetCatPriority(req, res) {
+  const db = await loadDb();
+  json(res, db.catPriority || {});
+}
+
+async function handleSaveCatPriority(req, res) {
+  const memberId = getMemberFromRequest(req);
+  if (!memberId) return err(res, "인증이 필요합니다.", 401);
+  const db = await loadDb();
+  const caller = db.members.find((m) => m.id === memberId);
+  if (caller?.role !== "admin") return err(res, "관리자 권한이 필요합니다.", 403);
+  const body = await parseBody(req);
+  db.catPriority = body; // { "파트명": ["cat1", "cat1", ...], ... }
+  await saveDb(db);
+  json(res, { ok: true });
+}
+
 async function handleUpdateCategories(req, res) {
   const memberId = getMemberFromRequest(req);
   if (!memberId) return err(res, "인증이 필요합니다.", 401);
@@ -1133,6 +1150,9 @@ async function handler(req, res) {
 
     if (path === "/api/categories" && method === "GET") return handleGetCategories(req, res);
     if (path === "/api/categories" && method === "PUT") return handleUpdateCategories(req, res);
+
+    if (path === "/api/cat-priority" && method === "GET") return handleGetCatPriority(req, res);
+    if (path === "/api/cat-priority" && method === "PUT") return handleSaveCatPriority(req, res);
 
     if (path === "/api/recurring" && method === "GET") return handleGetRecurring(req, res, url);
     if (path === "/api/recurring" && method === "POST") return handleCreateRecurring(req, res);
