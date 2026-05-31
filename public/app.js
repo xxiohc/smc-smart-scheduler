@@ -5073,7 +5073,9 @@ function wireEvents() {
         .arc-sub-dot { width: 3px; height: 3px; border-radius: 50%; flex-shrink: 0; background: #d1d5db; }
         .arc-sub-date { font-size: 10px; color: #9ca3af; }
         /* ─ 숨길 요소 ─ */
-        .comp-item-del, .comp-col-empty, .empty-state, .loading { display: none; }
+        .comp-item-del, .comp-col-add-btn, .comp-sec-add-btn,
+        .comp-part-submit-btn, .comp-part-submitted-badge, .comp-part-pending-badge,
+        .comp-drag-handle, .comp-col-empty, .empty-state, .loading { display: none !important; }
         @media print {
           body { padding: 16px 18px; }
           .comp-parts-grid { gap: 8px; }
