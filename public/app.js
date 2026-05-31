@@ -5023,7 +5023,7 @@ function wireEvents() {
       <meta charset="utf-8"/>
       <title>${title} ${subTitle}</title>
       <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #fff; color: #111827; padding: 24px 28px; font-size: 13px; }
         /* ─ 헤더 ─ */
         .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; gap: 24px; }
