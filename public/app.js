@@ -5275,142 +5275,151 @@ async function renderCompilation() {
   const weekRangeLabel = `${fmt(ws)}~${fmt(we)}`;
   const sLabel = { in_progress: "진행중", done: "완료", hold: "보류", waiting: "계획" };
 
-  // ── 아이템 행 생성 (editable / readonly) ──
+  // ── 아이템 행 생성 (모든 역할 동일한 뷰, 편집권한자만 ✕ 표시) ──
   const makeItemRow = (item, part) => {
     const editable = canEdit(part);
     const st = _WEEK_LEGACY[item.status] || item.status || "in_progress";
+    const subs = (item.subtasks || []).filter(s => s.text?.trim());
+    const hasMainText = item.text && item.text !== (item.cat2 || "") && item.text !== (item.cat1 || "");
+    const showBadge = st !== "in_progress" && st !== "waiting";
+    const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
+    const memberHtml = item.memberName ? `<span class="comp-member-inline">${esc(item.memberName)}</span>` : "";
+    const itemDate = item.date ? item.date.slice(5).replace("-", "/") : "";
+    const wkHtml = st === "in_progress"
+      ? `<span class="comp-status-prog">진행</span>`
+      : st === "waiting"
+        ? (itemDate ? `<span class="archive-task-weeks">${itemDate}</span>` : "")
+        : `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
+    const cat2Html = (item.cat2 || "") ? `<span class="arc-cat2">${esc(item.cat2)}</span>` : "";
+    const catHtml = cat2Html ? `<div class="arc-cats">${cat2Html}${!hasMainText ? `${memberHtml}${wkHtml}` : ""}</div>` : "";
+    const mainText = hasMainText ? `<span class="arc-main-text">${esc(item.text)}${memberHtml}${wkHtml}</span>` : "";
+    const subsHtml = subs.length
+      ? `<div class="arc-subs">${subs.map(s => {
+          const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+          const done = s.done || sSt === "done";
+          const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
+          return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDate ? `<span class="arc-sub-date">(${sDate})</span>` : ""}</div>`;
+        }).join("")}</div>` : "";
+    const delBtn = editable ? `<button class="comp-item-del" title="삭제">✕</button>` : "";
     const row = document.createElement("div");
     row.className = `archive-item ${st}`;
-
+    row.innerHTML = `<span class="archive-item-dot"></span><div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>${delBtn}`;
     if (editable) {
-      // ── 편집 모드 ──
-      row.innerHTML = `<span class="archive-item-dot"></span><div class="arc-item-body comp-edit-body"></div><button class="comp-item-del" title="삭제">✕</button>`;
-      const body = row.querySelector(".arc-item-body");
-
-      // cat1 인라인 편집
-      const cat1Row = document.createElement("div");
-      cat1Row.className = "comp-edit-row";
-      const cat1In = document.createElement("input");
-      cat1In.className = "comp-edit-input comp-edit-cat1";
-      cat1In.value = item.cat1 || "";
-      cat1In.placeholder = "카테고리(1)";
-      cat1In.addEventListener("change", async () => {
-        item.cat1 = cat1In.value.trim();
-        await saveComp(items, null, null);
-        renderCompilation();
-      });
-      cat1Row.appendChild(cat1In);
-      body.appendChild(cat1Row);
-
-      // cat2 + 담당자 + 날짜
-      const mainRow = document.createElement("div");
-      mainRow.className = "comp-edit-row";
-      const cat2In = document.createElement("input");
-      cat2In.className = "comp-edit-input comp-edit-cat2";
-      cat2In.value = item.cat2 || "";
-      cat2In.placeholder = "카테고리(2) / 업무명";
-      cat2In.addEventListener("change", async () => {
-        item.cat2 = cat2In.value.trim();
-        item.text = cat2In.value.trim();
-        await saveComp(items, null, null);
-      });
-      const memberSpan = document.createElement("span");
-      memberSpan.className = "comp-member-inline";
-      memberSpan.textContent = item.memberName || "";
-      const dateIn = document.createElement("input");
-      dateIn.type = "date";
-      dateIn.className = "comp-edit-date";
-      dateIn.value = item.date || "";
-      dateIn.title = "기한";
-      dateIn.addEventListener("change", async () => {
-        item.date = dateIn.value;
-        await saveComp(items, null, null);
-      });
-      mainRow.appendChild(cat2In);
-      mainRow.appendChild(memberSpan);
-      mainRow.appendChild(dateIn);
-      body.appendChild(mainRow);
-
-      // 세부업무 목록
-      const subsWrap = document.createElement("div");
-      subsWrap.className = "comp-edit-subs";
-      const rebuildSubs = () => {
-        subsWrap.innerHTML = "";
-        (item.subtasks || []).forEach((s, si) => {
-          const subRow = document.createElement("div");
-          subRow.className = "comp-edit-sub-row";
-          const stxt = document.createElement("input");
-          stxt.className = "comp-edit-input comp-edit-sub-text";
-          stxt.value = s.text || "";
-          stxt.placeholder = "세부업무";
-          stxt.addEventListener("change", async () => { s.text = stxt.value; await saveComp(items, null, null); });
-          const sdateIn = document.createElement("input");
-          sdateIn.type = "date";
-          sdateIn.className = "comp-edit-date";
-          sdateIn.value = s.due_date || "";
-          sdateIn.title = "세부업무 기한";
-          sdateIn.addEventListener("change", async () => { s.due_date = sdateIn.value; await saveComp(items, null, null); });
-          const sdel = document.createElement("button");
-          sdel.className = "comp-sub-del";
-          sdel.textContent = "✕";
-          sdel.addEventListener("click", async () => {
-            item.subtasks.splice(si, 1);
-            await saveComp(items, null, null);
-            rebuildSubs();
-          });
-          subRow.appendChild(stxt);
-          subRow.appendChild(sdateIn);
-          subRow.appendChild(sdel);
-          subsWrap.appendChild(subRow);
-        });
-        const addSubBtn = document.createElement("button");
-        addSubBtn.className = "comp-add-sub-btn";
-        addSubBtn.textContent = "+ 세부업무 추가";
-        addSubBtn.addEventListener("click", () => {
-          if (!item.subtasks) item.subtasks = [];
-          item.subtasks.push({ text: "", status: "in_progress", due_date: "" });
-          rebuildSubs();
-        });
-        subsWrap.appendChild(addSubBtn);
-      };
-      rebuildSubs();
-      body.appendChild(subsWrap);
-
-      // 삭제 버튼
       row.querySelector(".comp-item-del").addEventListener("click", async () => {
+        if (!confirm(`"${item.cat2 || item.text}" 항목을 삭제하시겠습니까?`)) return;
         const fresh = await api("GET", `/api/compilation?week=${weekKey}`);
         const updated = (fresh.items || []).filter(e => e.id !== item.id);
         await api("PUT", "/api/compilation", { week: weekKey, items: updated, order: fresh.order || currentOrder, partStatus: fresh.partStatus || partStatus });
         renderCompilation();
       });
-
-    } else {
-      // ── 읽기 전용 모드 ──
-      const subs = (item.subtasks || []).filter(s => s.text?.trim());
-      const hasMainText = item.text && item.text !== (item.cat2 || "") && item.text !== (item.cat1 || "");
-      const showBadge = st !== "in_progress" && st !== "waiting";
-      const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
-      const memberHtml = item.memberName ? `<span class="comp-member-inline">${esc(item.memberName)}</span>` : "";
-      const itemDate = item.date ? item.date.slice(5).replace("-", "/") : "";
-      const wkHtml = st === "in_progress"
-        ? `<span class="comp-status-prog">진행</span>`
-        : st === "waiting"
-          ? (itemDate ? `<span class="archive-task-weeks">${itemDate}</span>` : "")
-          : `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
-      const cat2Html = (item.cat2 || "") ? `<span class="arc-cat2">${esc(item.cat2)}</span>` : "";
-      const catHtml = cat2Html ? `<div class="arc-cats">${cat2Html}${!hasMainText ? `${memberHtml}${wkHtml}` : ""}</div>` : "";
-      const mainText = hasMainText ? `<span class="arc-main-text">${esc(item.text)}${memberHtml}${wkHtml}</span>` : "";
-      const subsHtml = subs.length
-        ? `<div class="arc-subs">${subs.map(s => {
-            const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
-            const done = s.done || sSt === "done";
-            const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
-            return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDate ? `<span class="arc-sub-date">(${sDate})</span>` : ""}</div>`;
-          }).join("")}</div>` : "";
-      row.innerHTML = `<span class="archive-item-dot"></span><div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>`;
     }
-
     return row;
+  };
+
+  // ── 항목 추가 모달 ──
+  const openAddItemModal = (part, defaultCat1 = "") => {
+    const partMembers = S.members.filter(m => m.part === part);
+    const allCat1 = [...new Set(items.filter(i => i.memberPart === part).map(i => i.cat1).filter(Boolean))];
+    const cat1Options = allCat1.map(c => `<option value="${esc(c)}"${c === defaultCat1 ? " selected" : ""}>${esc(c)}</option>`).join("");
+    const memberOptions = partMembers.map(m => `<option value="${esc(m.name)}" data-part="${esc(m.part || part)}">${esc(m.name)}</option>`).join("");
+    const STATUS_OPTS = [
+      { key: "waiting",     label: "계획" },
+      { key: "in_progress", label: "진행" },
+      { key: "done",        label: "완료" },
+    ];
+    $("modalCard").innerHTML = `
+      <div class="modal-header"><h3 class="modal-title">항목 추가 — ${esc(part)}</h3><button id="compModalClose" class="modal-close">✕</button></div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-field">
+          <label>카테고리(1)</label>
+          <input id="cmi_cat1" class="form-input" list="cmi_cat1_list" value="${esc(defaultCat1)}" placeholder="예) 월 결산, 기타 활동" />
+          <datalist id="cmi_cat1_list">${cat1Options}</datalist>
+        </div>
+        <div class="form-field">
+          <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
+          <input id="cmi_cat2" class="form-input" placeholder="업무 내용을 입력하세요" />
+        </div>
+        <div class="form-field">
+          <label>담당자</label>
+          <select id="cmi_member" class="form-input">
+            <option value="">-- 선택 --</option>
+            ${memberOptions}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>상태</label>
+          <div style="display:flex;gap:8px">
+            ${STATUS_OPTS.map(o => `<button type="button" class="cmi-status-btn${o.key === "in_progress" ? " active" : ""}" data-key="${o.key}">${o.label}</button>`).join("")}
+          </div>
+        </div>
+        <div class="form-field">
+          <label>기한 (선택)</label>
+          <input id="cmi_date" type="date" class="form-input" />
+        </div>
+        <div class="form-field">
+          <label>세부업무 (선택)</label>
+          <div id="cmi_subs_wrap"></div>
+          <button id="cmi_add_sub" class="btn-ghost small" style="margin-top:4px">+ 세부업무 추가</button>
+        </div>
+      </div>
+      <div class="modal-footer"><button id="cmi_save" class="btn-primary">추가</button><button id="cmi_cancel" class="btn-ghost">취소</button></div>
+    `;
+    $("modal").classList.remove("hidden");
+
+    // 상태 버튼 토글
+    let selStatus = "in_progress";
+    $("modalCard").querySelectorAll(".cmi-status-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selStatus = btn.dataset.key;
+        $("modalCard").querySelectorAll(".cmi-status-btn").forEach(b => b.classList.toggle("active", b.dataset.key === selStatus));
+      });
+    });
+
+    // 세부업무
+    let subsList = [];
+    const rebuildSubsModal = () => {
+      const wrap = $("cmi_subs_wrap");
+      wrap.innerHTML = "";
+      subsList.forEach((s, si) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:6px;margin-bottom:6px;align-items:center";
+        row.innerHTML = `<input class="form-input" style="flex:1" value="${esc(s.text)}" placeholder="세부업무" /><input type="date" class="form-input" style="width:130px" value="${s.due_date||""}" /><button class="btn-danger" style="padding:4px 8px">✕</button>`;
+        row.querySelector("input").addEventListener("input", e => { subsList[si].text = e.target.value; });
+        row.querySelectorAll("input")[1].addEventListener("change", e => { subsList[si].due_date = e.target.value; });
+        row.querySelector("button").addEventListener("click", () => { subsList.splice(si, 1); rebuildSubsModal(); });
+        wrap.appendChild(row);
+      });
+    };
+    rebuildSubsModal();
+    $("cmi_add_sub").addEventListener("click", () => { subsList.push({ text: "", status: "in_progress", due_date: "" }); rebuildSubsModal(); });
+
+    const close = () => $("modal").classList.add("hidden");
+    $("compModalClose").addEventListener("click", close);
+    $("cmi_cancel").addEventListener("click", close);
+    $("cmi_save").addEventListener("click", async () => {
+      const cat2 = $("cmi_cat2").value.trim();
+      if (!cat2) { $("cmi_cat2").focus(); return; }
+      const memberSel = $("cmi_member");
+      const memberName = memberSel.value;
+      const newItem = {
+        id: genLocalId(),
+        cat1: $("cmi_cat1").value.trim(),
+        cat2,
+        text: cat2,
+        status: selStatus,
+        date: $("cmi_date").value,
+        subtasks: subsList.filter(s => s.text.trim()),
+        memberName,
+        memberPart: part,
+        reportYear: year, reportWeek: week,
+      };
+      const fresh = await api("GET", `/api/compilation?week=${weekKey}`);
+      const merged = [...(fresh.items || []), newItem];
+      await api("PUT", "/api/compilation", { week: weekKey, items: merged, order: fresh.order || currentOrder, partStatus: fresh.partStatus || partStatus });
+      close();
+      showToast("✅ 항목이 추가됐습니다.");
+      renderCompilation();
+    });
   };
 
   // ── 4열 파트 컬럼 레이아웃 ────────────────────────────────────
@@ -5460,6 +5469,13 @@ async function renderCompilation() {
       empty.className = "comp-col-empty";
       empty.textContent = "항목 없음";
       col.appendChild(empty);
+      if (canEdit(part)) {
+        const addBtn = document.createElement("button");
+        addBtn.className = "comp-col-add-btn";
+        addBtn.textContent = "+ 항목 추가";
+        addBtn.addEventListener("click", () => openAddItemModal(part));
+        col.appendChild(addBtn);
+      }
     } else {
       cat1Keys.forEach(cat1 => {
         const catItems = cat1Map[cat1];
@@ -5485,6 +5501,14 @@ async function renderCompilation() {
         const itemsWrap = document.createElement("div");
         itemsWrap.className = "archive-items";
         catItems.forEach(item => itemsWrap.appendChild(makeItemRow(item, part)));
+        // 섹션 내 추가 버튼
+        if (canEdit(part)) {
+          const secAddBtn = document.createElement("button");
+          secAddBtn.className = "comp-sec-add-btn";
+          secAddBtn.textContent = "+ 추가";
+          secAddBtn.addEventListener("click", () => openAddItemModal(part, cat1));
+          itemsWrap.appendChild(secAddBtn);
+        }
         section.appendChild(itemsWrap);
 
         if (canEdit(part)) {
@@ -5525,6 +5549,15 @@ async function renderCompilation() {
 
         col.appendChild(section);
       });
+    }
+
+    // ── 새 섹션(cat1) 항목 추가 버튼 ──
+    if (canEdit(part) && cat1Keys.length > 0) {
+      const addMoreBtn = document.createElement("button");
+      addMoreBtn.className = "comp-col-add-btn";
+      addMoreBtn.textContent = "+ 항목 추가";
+      addMoreBtn.addEventListener("click", () => openAddItemModal(part));
+      col.appendChild(addMoreBtn);
     }
 
     // ── 파트 취합완료 버튼 (파트장: 본인 파트만 / 팀장: 표시 없음) ──

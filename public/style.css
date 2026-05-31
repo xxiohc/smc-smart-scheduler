@@ -2155,30 +2155,29 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   padding: 1px 7px; margin-left: 6px; vertical-align: middle;
 }
 
-/* ── 취합 편집 모드 인풋 ──────────────────────────────── */
-.comp-edit-body { display: flex; flex-direction: column; gap: 5px; flex: 1; }
-.comp-edit-row { display: flex; align-items: center; gap: 5px; }
-.comp-edit-input {
-  flex: 1; border: 1px solid var(--border); border-radius: 4px;
-  padding: 3px 7px; font-size: 12px; background: #fff;
-  font-family: inherit; min-width: 0;
+/* ── 취합 항목 추가 버튼 ──────────────────────────────── */
+.comp-col-add-btn {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 7px 10px; border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--border); background: #fff;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; text-align: center; transition: border-color .15s, color .15s;
 }
-.comp-edit-input:focus { outline: none; border-color: var(--primary); background: var(--primary-soft); }
-.comp-edit-cat1 { font-weight: 700; color: var(--primary); flex: 0 0 auto; width: 90px; }
-.comp-edit-cat2 { font-size: 13px; }
-.comp-edit-date {
-  flex: 0 0 auto; width: 110px; border: 1px solid var(--border);
-  border-radius: 4px; padding: 3px 5px; font-size: 11px; background: #fff;
+.comp-col-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+.comp-sec-add-btn {
+  display: block; width: 100%; margin-top: 4px; padding: 4px 8px;
+  border: none; background: none; color: var(--primary);
+  font-size: 11px; font-weight: 600; cursor: pointer; text-align: left;
+  opacity: 0.7;
 }
-.comp-edit-subs { display: flex; flex-direction: column; gap: 4px; margin-top: 3px; padding-left: 10px; }
-.comp-edit-sub-row { display: flex; align-items: center; gap: 4px; }
-.comp-edit-sub-text { font-size: 12px; }
-.comp-sub-del { flex: 0 0 auto; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; padding: 0 3px; }
-.comp-add-sub-btn {
-  font-size: 11px; color: var(--primary); background: none; border: none;
-  cursor: pointer; padding: 2px 0; text-align: left; margin-top: 2px;
+.comp-sec-add-btn:hover { opacity: 1; text-decoration: underline; }
+
+/* 상태 버튼 (취합 항목 추가 모달) */
+.cmi-status-btn {
+  padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: #fff; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.comp-add-sub-btn:hover { text-decoration: underline; }
+.cmi-status-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
 
 /* ═══════════════════════════════════════════════════════════
    FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)
