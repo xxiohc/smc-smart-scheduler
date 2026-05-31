@@ -678,8 +678,8 @@ async function renderDashboard() {
 /* ── 이번 주 업무 리스트 (단일) ─────────────────────────── */
 const _WEEK_STATUSES  = ["in_progress", "done", "hold"];
 const _WEEK_STATUS_LBL = { in_progress: "진행중", done: "완료", hold: "보류" };
-const _WEEK_LEGACY    = { pending: "in_progress", partial: "hold", waiting: "in_progress" };
-const _WEEK_ORDER     = { in_progress: 0, hold: 1, done: 2 };
+const _WEEK_LEGACY    = { pending: "in_progress", partial: "hold" };  // waiting은 이제 '계획' 활성 상태
+const _WEEK_ORDER     = { waiting: 0, in_progress: 1, hold: 2, done: 3 };
 
 function renderWeekTasksList() {
   const container = $("weekTasksList");
@@ -1273,7 +1273,7 @@ async function renderTeam(silent = false) {
 function showReportDetail(member, report, year, week, canEdit = false) {
   const modal = $("modal");
   const card = $("modalCard");
-  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+  const sLabel = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
 
   // 보기 모드 렌더
   function renderViewMode(rpt) {
@@ -2223,7 +2223,7 @@ async function doArchiveSearch() {
     });
 
     result.innerHTML = "";
-    const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+    const sLabel = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
 
     if (view === "weekly") {
       // 주별 뷰: 주차별로 그룹
@@ -2483,7 +2483,7 @@ function exportArchivePdf() {
 
   // 상태 컬러 맵
   const statusColor = { in_progress: "#3182f6", done: "#00a661", hold: "#f6a623" };
-  const statusLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+  const statusLabel = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
 
   // 블록별 HTML 생성
   let bodyHtml = "";
@@ -2718,7 +2718,7 @@ async function openFeedbackModal(member, year, periodType, periodValue) {
 async function doYearlyArchive(year, result) {
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
   const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
-  const sLabel = { in_progress: "진행중", done: "완료", hold: "보류" };
+  const sLabel = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
   const doneOnly = $("archiveDoneOnly")?.checked || false;
 
   // 가시 멤버 (권한별)

@@ -984,6 +984,7 @@ input, select, textarea { outline: none; }
 .arc-status-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; white-space: nowrap; }
 .arc-status-badge.done        { background: #dcfce7; color: var(--good); }
 .arc-status-badge.in_progress { background: var(--primary-soft); color: var(--primary); }
+.arc-status-badge.waiting     { background: #fef3c7; color: #d97706; }
 .arc-status-badge.hold        { background: #fef9c3; color: #a16207; }
 .arc-status-badge.partial     { background: #fef9c3; color: #a16207; }
 .archive-note { font-size: 13px; color: var(--subtle); margin-top: 4px; font-style: italic; }
