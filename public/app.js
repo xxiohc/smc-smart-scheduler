@@ -4886,15 +4886,44 @@ function wireEvents() {
   });
 
   // PDF 내보내기
-  $("compPdfBtn").addEventListener("click", () => {
+  $("compPdfBtn").addEventListener("click", async () => {
     const { year, week } = S.comp;
     const ws = weekStart(year, week), we = weekEnd(year, week);
-    const fmt = (d) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
-    const wkRange = `${fmt(ws)} ~ ${fmt(we)}`;
-    const title = `경영지원팀 주간업무 취합본`;
-    const subTitle = `${weekLabel(year, week)} (${wkRange})`;
-    const content = document.getElementById("compilationResult").innerHTML;
+    const fmt    = (d) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+    const fmtMD  = (d) => `${d.getMonth()+1}/${d.getDate()}`;
+    const isoFmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const wkRange   = `${fmt(ws)} ~ ${fmt(we)}`;
+    const title     = `경영지원팀 주간업무`;
+    const subTitle  = `${weekLabel(year, week)} (${wkRange})`;
+    const content   = document.getElementById("compilationResult").innerHTML;
     const printDate = fmt(new Date());
+
+    // ── 해당 주 캘린더 이벤트 조회 ──
+    const EVENT_TYPE = { birthday: { icon: "🎂", label: "생일" }, vacation: { icon: "🏖", label: "휴가" }, business_trip: { icon: "✈️", label: "출장" } };
+    let weekEvents = [];
+    try {
+      const startStr = isoFmt(ws), endStr = isoFmt(we);
+      const evData = await api("GET", `/api/events?start=${startStr}&end=${endStr}`);
+      // 생일: S.members에서 해당 주 생일인 멤버 추가
+      const bdaySet = new Set(evData.filter(e => e.type === "birthday").map(e => e.member_id));
+      S.members.forEach(m => {
+        if (!m.birthday || bdaySet.has(m.id)) return;
+        const parts = m.birthday.split("-");
+        const bday = new Date(ws.getFullYear(), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+        if (bday >= ws && bday <= we) {
+          evData.push({ type: "birthday", isBirthday: true, member: m, start_date: isoFmt(bday) });
+        }
+      });
+      weekEvents = evData.map(e => {
+        const cfg = EVENT_TYPE[e.type] || { icon: "📅", label: e.type };
+        const name = e.member?.name || e.title || "";
+        const sd = e.start_date ? new Date(e.start_date + "T00:00:00") : null;
+        const ed = e.end_date   ? new Date(e.end_date   + "T00:00:00") : null;
+        const dateStr = sd && ed && isoFmt(sd) !== isoFmt(ed)
+          ? `${fmtMD(sd)}~${fmtMD(ed)}` : (sd ? fmtMD(sd) : "");
+        return { icon: cfg.icon, label: cfg.label, name, dateStr };
+      });
+    } catch(e) { /* 이벤트 조회 실패 시 무시 */ }
     const printWin = window.open("", "_blank", "width=1200,height=800");
     printWin.document.write(`<!DOCTYPE html><html><head>
       <meta charset="utf-8"/>
@@ -4903,10 +4932,19 @@ function wireEvents() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #fff; color: #111827; padding: 24px 28px; font-size: 13px; }
         /* ─ 헤더 ─ */
-        .pdf-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; }
+        .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; gap: 20px; }
+        .pdf-header-left { flex: 0 0 auto; }
         .pdf-title { font-size: 20px; font-weight: 800; color: #1b64da; letter-spacing: -0.3px; }
         .pdf-subtitle { font-size: 13px; color: #374151; margin-top: 3px; font-weight: 500; }
-        .pdf-meta { font-size: 11px; color: #9ca3af; text-align: right; line-height: 1.6; }
+        .pdf-meta { font-size: 11px; color: #9ca3af; text-align: right; line-height: 1.6; flex-shrink: 0; }
+        /* ─ 이벤트 뱃지 영역 ─ */
+        .pdf-events { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; padding-top: 4px; }
+        .pdf-event-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+        .pdf-event-chip.birthday      { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .pdf-event-chip.vacation      { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .pdf-event-chip.business_trip { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .pdf-event-chip.other         { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+        .pdf-event-date { font-weight: 400; font-size: 10px; opacity: 0.8; }
         /* ─ 4열 그리드 ─ */
         .comp-parts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: start; }
         .comp-part-col { border: 1.5px solid #d1d5db; border-radius: 8px; overflow: hidden; }
@@ -4951,10 +4989,17 @@ function wireEvents() {
       </style>
     </head><body>
       <div class="pdf-header">
-        <div>
+        <div class="pdf-header-left">
           <div class="pdf-title">📋 ${title}</div>
           <div class="pdf-subtitle">${subTitle}</div>
         </div>
+        ${weekEvents.length ? `
+        <div class="pdf-events">
+          ${weekEvents.map(ev => {
+            const cls = ev.label === "생일" ? "birthday" : ev.label === "휴가" ? "vacation" : ev.label === "출장" ? "business_trip" : "other";
+            return `<span class="pdf-event-chip ${cls}">${ev.icon} ${ev.name}${ev.dateStr ? ` <span class="pdf-event-date">(${ev.dateStr})</span>` : ""}</span>`;
+          }).join("")}
+        </div>` : ""}
         <div class="pdf-meta">삼성서울병원 경영지원팀<br>출력일: ${printDate}</div>
       </div>
       ${content}
