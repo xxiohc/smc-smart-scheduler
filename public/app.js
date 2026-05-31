@@ -861,7 +861,12 @@ function createWeekTaskItem(item, idx) {
           }
         };
         applyDateState(s.due_date || "", sStatus);
+        if (S.reportSubmitted) {
+          dateIn.readOnly = true;
+          dateIn.style.cssText = "background:transparent;border-color:transparent;color:var(--muted);cursor:default;";
+        }
         dateIn.addEventListener("change", (e) => {
+          if (S.reportSubmitted) { e.target.value = S.weekTasks[idx].subtasks[si].due_date || ""; return; }
           S.weekTasks[idx].subtasks[si].due_date = e.target.value;
           const cur = S.weekTasks[idx].subtasks[si].status || "in_progress";
           applyDateState(e.target.value, cur);
@@ -885,7 +890,13 @@ function createWeekTaskItem(item, idx) {
           btn.className = "wts-st-btn wts-st-" + key + (sStatus === key ? " active" : "");
           btn.dataset.stkey = key;
           btn.textContent = label;
+          if (S.reportSubmitted) {
+            btn.disabled = true;
+            btn.style.opacity = sStatus === key ? "1" : "0.35";
+            btn.style.cursor = "default";
+          }
           btn.addEventListener("click", () => {
+            if (S.reportSubmitted) { showToast("⚠️ 제출된 업무는 수정할 수 없습니다.", "error"); return; }
             S.weekTasks[idx].subtasks[si].status = key;
             S.weekTasks[idx].subtasks[si].done = (key === "done");
             stGroup.querySelectorAll(".wts-st-btn").forEach(b =>
@@ -959,6 +970,10 @@ function createWeekTaskItem(item, idx) {
     dateIn.style.display = "";
   }
   applyDateStyle(current);
+  if (S.reportSubmitted) {
+    dateIn.readOnly = true;
+    dateIn.style.cssText = "background:transparent;border-color:transparent;color:var(--muted);cursor:default;pointer-events:none;";
+  }
   inner.appendChild(dateIn);
 
   // ── 액션 버튼 ──
@@ -973,11 +988,13 @@ function createWeekTaskItem(item, idx) {
   }
   syncStatusBtnVisibility(current, item.date || "");
   dateIn.addEventListener("change", (e) => {
+    if (S.reportSubmitted) { e.target.value = S.weekTasks[idx].date || ""; return; }
     S.weekTasks[idx].date = e.target.value;
     const cur2 = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
     syncStatusBtnVisibility(cur2, e.target.value);
   });
   statusBtn.addEventListener("click", () => {
+    if (S.reportSubmitted) { showToast("⚠️ 제출된 업무는 수정할 수 없습니다.", "error"); return; }
     const cur = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
     const nxt = _WEEK_STATUSES[(_WEEK_STATUSES.indexOf(cur) + 1) % _WEEK_STATUSES.length];
     S.weekTasks[idx].status = nxt;
@@ -1029,7 +1046,12 @@ function createWeekTaskItem(item, idx) {
     // 진행 상태면 날짜 숨김
     iDateWrap.style.display = current === "in_progress" ? "none" : "";
 
+    if (S.reportSubmitted) {
+      iDate.readOnly = true;
+      iDate.style.cssText = "background:transparent;border-color:transparent;color:var(--muted);cursor:default;";
+    }
     iDate.addEventListener("change", (e) => {
+      if (S.reportSubmitted) { e.target.value = S.weekTasks[idx].date || ""; return; }
       S.weekTasks[idx].date = e.target.value;
       dateIn.value = e.target.value;
       const cur = _WEEK_LEGACY[S.weekTasks[idx].status] || S.weekTasks[idx].status || "in_progress";
@@ -1049,7 +1071,13 @@ function createWeekTaskItem(item, idx) {
       btn.dataset.stkey = key;
       btn.textContent = label;
       if (current === key) btn.classList.add("active");
+      if (S.reportSubmitted) {
+        btn.disabled = true;
+        btn.style.opacity = current === key ? "1" : "0.35";
+        btn.style.cursor = "default";
+      }
       btn.addEventListener("click", () => {
+        if (S.reportSubmitted) { showToast("⚠️ 제출된 업무는 수정할 수 없습니다.", "error"); return; }
         S.weekTasks[idx].status = key;
         inlineCtrl.querySelectorAll(".wtc-st-btn").forEach(b =>
           b.classList.toggle("active", b.dataset.stkey === key)
@@ -4886,6 +4914,10 @@ function wireEvents() {
     if (week > 52) { year++; week = 1; }
     S.comp = { ...S.comp, year, week };
     renderCompilation();
+  });
+  $("compRefreshBtn").addEventListener("click", () => {
+    renderCompilation();
+    showToast("✅ 최신 데이터로 갱신됐습니다.");
   });
   $("compThisWeek").addEventListener("click", () => {
     S.comp = { ...S.comp, year: S.dash.year, week: S.dash.week };
