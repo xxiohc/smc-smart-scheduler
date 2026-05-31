@@ -2082,23 +2082,29 @@ function renderArchive() {
       yearSel.appendChild(o);
     }
   }
-  // 일반 팀원: 파트·멤버 필터 숨기고 본인 이름 표시
-  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
-  $("archivePart").classList.toggle("hidden", !isPrivileged);
-  $("archiveMember").classList.toggle("hidden", !isPrivileged);
+  // 역할별 필터 표시
+  // admin(팀장): 파트+팀원 드롭다운 모두 표시
+  // leader(파트장): 파트 드롭다운 숨기고 팀원 드롭다운만 표시 (본인 파트 내)
+  // member(팀원): 둘 다 숨기고 본인 이름 라벨만
+  const isAdmin  = S.member.role === "admin";
+  const isLeader = S.member.role === "leader";
+  const isMember = !isAdmin && !isLeader;
 
-  if (!isPrivileged) {
-    // 본인 이름 라벨만 표시
-    let myLbl = document.getElementById("archiveMyLabel");
+  $("archivePart").classList.toggle("hidden", !isAdmin);
+  $("archiveMember").classList.toggle("hidden", isMember);
+
+  let myLbl = document.getElementById("archiveMyLabel");
+  if (isMember || isLeader) {
     if (!myLbl) {
       myLbl = document.createElement("span");
       myLbl.id = "archiveMyLabel";
       myLbl.className = "archive-my-label";
       $("archivePart").parentNode.insertBefore(myLbl, $("archivePart"));
     }
-    myLbl.textContent = `👤 ${S.member.name} (본인 업무만 조회)`;
+    myLbl.textContent = isMember
+      ? `👤 ${S.member.name} (본인 업무만 조회)`
+      : `📂 ${S.member.part || "내 파트"} 파트원 조회`;
   } else {
-    const myLbl = document.getElementById("archiveMyLabel");
     if (myLbl) myLbl.remove();
   }
 
@@ -2129,7 +2135,10 @@ function renderArchive() {
 }
 
 function updateArchiveMemberList() {
-  const partVal = $("archivePart").value;
+  const isAdmin  = S.member.role === "admin";
+  const isLeader = S.member.role === "leader";
+  // 팀장: 드롭다운 선택값 사용 / 파트장: 본인 파트 고정
+  const partVal = isAdmin ? $("archivePart").value : (isLeader ? S.member.part : "");
   const memberSel = $("archiveMember");
   const prevVal = memberSel.value;
   memberSel.innerHTML = '<option value="">전체 팀원</option>';
@@ -2171,10 +2180,14 @@ function updateArchiveMemberList() {
 
 function updateArchiveSelectors() {
   const view = $("archiveView").value;
+  const isAdmin  = S.member.role === "admin";
+  const isMember = !isAdmin && S.member.role !== "leader";
   $("archiveMonth").classList.toggle("hidden", view !== "monthly");
   $("archiveQuarter").classList.toggle("hidden", view !== "quarterly");
-  $("archivePart").classList.toggle("hidden", view === "yearly");
-  $("archiveMember")?.classList.toggle("hidden", view === "yearly");
+  // 파트 드롭다운: 팀장만 + 연간 뷰 아닐 때만
+  $("archivePart").classList.toggle("hidden", !isAdmin || view === "yearly");
+  // 팀원 드롭다운: 팀원은 항상 숨김, 나머지는 연간 뷰 아닐 때만
+  $("archiveMember")?.classList.toggle("hidden", isMember || view === "yearly");
   $("archiveDoneOnly").closest("label")?.classList.remove("hidden"); // 연간 뷰에서도 완료업무 필터 사용 가능
   if (view === "monthly" && !$("archiveMonth").options.length) {
     for (let m = 1; m <= 12; m++) {
@@ -2191,10 +2204,14 @@ async function doArchiveSearch() {
   const view = $("archiveView").value;
   const year = Number($("archiveYear").value);
 
-  // 일반 팀원은 본인 데이터만 조회
-  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
-  const selectedPart = isPrivileged ? ($("archivePart").value) : "";
-  const memberId     = isPrivileged ? ($("archiveMember")?.value || "") : S.member.id;
+  // 역할별 조회 범위
+  const isAdmin  = S.member.role === "admin";
+  const isLeader = S.member.role === "leader";
+  const isMember = !isAdmin && !isLeader;
+  // 팀장: 드롭다운 선택 파트 / 파트장: 본인 파트 고정 / 팀원: ""
+  const selectedPart = isAdmin ? $("archivePart").value : (isLeader ? (S.member.part || "") : "");
+  // 팀원: 본인 ID 고정 / 팀장·파트장: 드롭다운 선택값
+  const memberId = isMember ? S.member.id : ($("archiveMember")?.value || "");
   const doneOnly = $("archiveDoneOnly")?.checked || false;
   const result = $("archiveResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -2721,14 +2738,18 @@ async function openFeedbackModal(member, year, periodType, periodValue) {
 
 async function doYearlyArchive(year, result) {
   result.innerHTML = '<div class="loading">불러오는 중...</div>';
-  const isPrivileged = S.member.role === "admin" || S.member.role === "leader";
+  const isAdmin  = S.member.role === "admin";
+  const isLeader = S.member.role === "leader";
+  const isMember = !isAdmin && !isLeader;
   const sLabel = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
   const doneOnly = $("archiveDoneOnly")?.checked || false;
 
-  // 가시 멤버 (권한별)
-  const visibleMembers = isPrivileged
+  // 가시 멤버 (역할별)
+  const visibleMembers = isAdmin
     ? S.members
-    : S.members.filter((m) => m.id === S.member.id);
+    : isLeader
+      ? S.members.filter((m) => m.part === S.member.part)
+      : S.members.filter((m) => m.id === S.member.id);
   const PARTS = [...new Set(visibleMembers.map((m) => m.part).filter(Boolean))];
 
   function weeksRangeLabel(weeks) {
@@ -2745,7 +2766,8 @@ async function doYearlyArchive(year, result) {
 
   try {
     let url = `/api/reports?year=${year}`;
-    if (!isPrivileged) url += `&memberId=${encodeURIComponent(S.member.id)}`;
+    if (isMember) url += `&memberId=${encodeURIComponent(S.member.id)}`;
+    else if (isLeader) url += `&part=${encodeURIComponent(S.member.part)}`;
     const reports = await api("GET", url);
 
     if (reports.length === 0) {
