@@ -5056,9 +5056,12 @@ async function renderCompilation() {
     const showBadge = st !== "in_progress";
     const badgeHtml = showBadge ? `<span class="arc-status-badge ${st}">${sLabel[st]}</span>` : "";
 
-    // cat2 · 담당자 · 날짜범위 한 줄에
+    // cat2 · 담당자 · 상태표시 한 줄에
+    // 진행중이면 날짜 대신 "진행" 텍스트만, 그 외에는 날짜범위
     const memberHtml = item.memberName ? `<span class="comp-member-inline">${esc(item.memberName)}</span>` : "";
-    const wkHtml = `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
+    const wkHtml = st === "in_progress"
+      ? `<span class="comp-status-prog">진행</span>`
+      : `<span class="archive-task-weeks">${weekRangeLabel}</span>`;
 
     const cat2Html = cat2 ? `<span class="arc-cat2">${esc(cat2)}</span>` : "";
     // 본문 텍스트가 없으면 cat2 행에 담당자+날짜 인라인

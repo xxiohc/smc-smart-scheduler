@@ -2038,6 +2038,8 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 .comp-item-del:hover { color: var(--warn); background: #fee2e2; }
 /* 취합본 담당자 — cat2 옆 인라인 */
 .comp-member-inline { font-size: 12px; color: var(--muted); white-space: nowrap; }
+/* 취합본 진행중 상태 텍스트 */
+.comp-status-prog { font-size: 11px; color: var(--primary); background: var(--primary-soft); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 /* 취합본에서 archive-item 내 삭제 버튼 위치 */
 #compilationResult .archive-item { align-items: flex-start; cursor: default; }
 #compilationResult .comp-item-del { margin-top: 1px; }
