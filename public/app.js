@@ -90,15 +90,21 @@ function getHolidays(year) {
 
 /* ── Event type config ────────────────────────────────── */
 const EVENT_TYPES = {
-  birthday:      { label: "생일",  icon: "🎂", calIcon: "🎂" },
-  vacation:      { label: "휴가",  icon: "🏖", calIcon: "🏖" },
-  business_trip: { label: "출장",  icon: "✈️", calIcon: "✈️" },
-  education:     { label: "교육",  icon: "📚", calIcon: "📚" },
+  birthday:         { label: "생일",          icon: "🎂", calIcon: "🎂", group: "생일",  calClass: "birthday" },
+  vacation:         { label: "종일 휴가",      icon: "🏖", calIcon: "🏖", group: "휴가",  calClass: "vacation" },
+  vacation_half_am: { label: "오전 반차",      icon: "🌤", calIcon: "🌤", group: "휴가",  calClass: "vacation vacation-half" },
+  vacation_half_pm: { label: "오후 반차",      icon: "🌦", calIcon: "🌦", group: "휴가",  calClass: "vacation vacation-half" },
+  vacation_q_am1:   { label: "오전(1) 반반차", icon: "◔",  calIcon: "◔",  group: "휴가",  calClass: "vacation vacation-quarter" },
+  vacation_q_am2:   { label: "오전(2) 반반차", icon: "◑",  calIcon: "◑",  group: "휴가",  calClass: "vacation vacation-quarter" },
+  vacation_q_pm1:   { label: "오후(1) 반반차", icon: "◕",  calIcon: "◕",  group: "휴가",  calClass: "vacation vacation-quarter" },
+  vacation_q_pm2:   { label: "오후(2) 반반차", icon: "◉",  calIcon: "◉",  group: "휴가",  calClass: "vacation vacation-quarter" },
+  business_trip:    { label: "출장",           icon: "✈️", calIcon: "✈️", group: "출장",  calClass: "business_trip" },
+  education:        { label: "교육",           icon: "📚", calIcon: "📚", group: "교육",  calClass: "education" },
   // 하위 호환 (기존 저장 데이터용)
-  wedding:       { label: "결혼",  icon: "💍", calIcon: "💍" },
-  birth_baby:    { label: "출산",  icon: "👶", calIcon: "👶" },
-  funeral:       { label: "부고",  icon: "🙏", calIcon: "🙏" },
-  congratulation:{ label: "경조사",icon: "🎉", calIcon: "🎉" },
+  wedding:          { label: "결혼",           icon: "💍", calIcon: "💍", group: "경조",  calClass: "wedding" },
+  birth_baby:       { label: "출산",           icon: "👶", calIcon: "👶", group: "경조",  calClass: "birth_baby" },
+  funeral:          { label: "부고",           icon: "🙏", calIcon: "🙏", group: "경조",  calClass: "funeral" },
+  congratulation:   { label: "경조사",         icon: "🎉", calIcon: "🎉", group: "경조",  calClass: "congratulation" },
 };
 function typeLabel(type) { return EVENT_TYPES[type]?.label || type; }
 function typeIcon(type)  { return EVENT_TYPES[type]?.icon  || "•";  }
@@ -1623,7 +1629,7 @@ function buildCalendarGrid(year, month, firstDay, lastDay, events) {
       dayEvents.slice(0, 3).forEach((e) => {
         const evEl = document.createElement("div");
         const isTodayBday = e.type === "birthday" && isToday;
-        evEl.className = `cal-event ${e.type}${isTodayBday ? " today-bday" : ""}`;
+        evEl.className = `cal-event ${EVENT_TYPES[e.type]?.calClass || e.type}${isTodayBday ? " today-bday" : ""}`;
         const name = e.member?.name || "?";
         const icon = typeIcon(e.type);
         if (e.type === "birthday") {
@@ -1937,8 +1943,8 @@ async function buildMemberYearView(memberId, year) {
   });
 
   const totalCount = events.length;
-  const typeIconMap = { birthday: "🎂", vacation: "🏖", business_trip: "✈️" };
-  const typeLabelMap = { birthday: "생일", vacation: "휴가", business_trip: "출장" };
+  const typeIconMap  = Object.fromEntries(Object.entries(EVENT_TYPES).map(([k,v]) => [k, v.icon]));
+  const typeLabelMap = Object.fromEntries(Object.entries(EVENT_TYPES).map(([k,v]) => [k, v.label]));
 
   let html = `
     <div class="cal-year-panel-title">
@@ -1997,7 +2003,8 @@ function openCalDateModal(dateStr, dayEvents) {
       const lunarBadge = e.type === "birthday" && (e.isLunar || e.repeat === "yearly_lunar")
         ? ` <span style="font-size:10px;color:#7b5ea7;background:#ede7f6;border-radius:4px;padding:1px 5px">(음)</span>` : "";
       const canDelete = !e.isBirthday && (e.member_id === S.member.id || S.member.role === "admin");
-      return `<div class="cal-date-modal-event ${e.type}">
+      const evCalClass = EVENT_TYPES[e.type]?.calClass || e.type;
+      return `<div class="cal-date-modal-event ${evCalClass}">
         <span class="cdm-event-text">${icon} <strong>${esc(name)}</strong> ${label}${lunarBadge}${noteStr}</span>
         ${canDelete ? `<button class="cdm-del-btn" data-del-id="${e.id}">✕</button>` : ""}
       </div>`;
@@ -4899,8 +4906,8 @@ function wireEvents() {
     const printDate = fmt(new Date());
 
     // ── 해당 주 캘린더 이벤트 조회 ──
-    const EVENT_TYPE = { birthday: { icon: "🎂", label: "생일" }, vacation: { icon: "🏖", label: "휴가" }, business_trip: { icon: "✈️", label: "출장" } };
-    let weekEvents = [];
+    // group: 생일/휴가/출장/교육 등으로 묶어서 표시
+    let weekEventGroups = {}; // { group: [{ icon, name, dateStr, subLabel }, ...] }
     try {
       const startStr = isoFmt(ws), endStr = isoFmt(we);
       const evData = await api("GET", `/api/events?start=${startStr}&end=${endStr}`);
@@ -4914,14 +4921,18 @@ function wireEvents() {
           evData.push({ type: "birthday", isBirthday: true, member: m, start_date: isoFmt(bday) });
         }
       });
-      weekEvents = evData.map(e => {
-        const cfg = EVENT_TYPE[e.type] || { icon: "📅", label: e.type };
+      evData.forEach(e => {
+        const cfg = EVENT_TYPES[e.type] || { label: e.type, icon: "📅", group: e.type };
+        const group = cfg.group || cfg.label;
         const name = e.member?.name || e.title || "";
         const sd = e.start_date ? new Date(e.start_date + "T00:00:00") : null;
         const ed = e.end_date   ? new Date(e.end_date   + "T00:00:00") : null;
         const dateStr = sd && ed && isoFmt(sd) !== isoFmt(ed)
           ? `${fmtMD(sd)}~${fmtMD(ed)}` : (sd ? fmtMD(sd) : "");
-        return { icon: cfg.icon, label: cfg.label, name, dateStr };
+        // 휴가 세부유형 표시 (반차/반반차 등)
+        const subLabel = e.type !== "vacation" && cfg.group === "휴가" ? cfg.label : "";
+        if (!weekEventGroups[group]) weekEventGroups[group] = { icon: cfg.icon, items: [] };
+        weekEventGroups[group].items.push({ name, dateStr, subLabel });
       });
     } catch(e) { /* 이벤트 조회 실패 시 무시 */ }
     const printWin = window.open("", "_blank", "width=1200,height=800");
@@ -4932,19 +4943,18 @@ function wireEvents() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #fff; color: #111827; padding: 24px 28px; font-size: 13px; }
         /* ─ 헤더 ─ */
-        .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; gap: 20px; }
+        .pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; gap: 24px; }
         .pdf-header-left { flex: 0 0 auto; }
         .pdf-title { font-size: 20px; font-weight: 800; color: #1b64da; letter-spacing: -0.3px; }
         .pdf-subtitle { font-size: 13px; color: #374151; margin-top: 3px; font-weight: 500; }
-        .pdf-meta { font-size: 11px; color: #9ca3af; text-align: right; line-height: 1.6; flex-shrink: 0; }
-        /* ─ 이벤트 뱃지 영역 ─ */
-        .pdf-events { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; padding-top: 4px; }
-        .pdf-event-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
-        .pdf-event-chip.birthday      { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-        .pdf-event-chip.vacation      { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        .pdf-event-chip.business_trip { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
-        .pdf-event-chip.other         { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-        .pdf-event-date { font-weight: 400; font-size: 10px; opacity: 0.8; }
+        /* ─ 이벤트 그룹 영역 ─ */
+        .pdf-events { flex: 1; display: flex; flex-direction: column; gap: 5px; padding-top: 4px; }
+        .pdf-event-line { font-size: 12px; color: #374151; display: flex; align-items: baseline; gap: 6px; }
+        .pdf-event-group-label { font-weight: 700; white-space: nowrap; }
+        .pdf-event-group-label.생일 { color: #b45309; }
+        .pdf-event-group-label.휴가 { color: #065f46; }
+        .pdf-event-group-label.출장 { color: #1e40af; }
+        .pdf-event-people { color: #4b5563; }
         /* ─ 4열 그리드 ─ */
         .comp-parts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: start; }
         .comp-part-col { border: 1.5px solid #d1d5db; border-radius: 8px; overflow: hidden; }
@@ -4993,14 +5003,19 @@ function wireEvents() {
           <div class="pdf-title">📋 ${title}</div>
           <div class="pdf-subtitle">${subTitle}</div>
         </div>
-        ${weekEvents.length ? `
+        ${Object.keys(weekEventGroups).length ? `
         <div class="pdf-events">
-          ${weekEvents.map(ev => {
-            const cls = ev.label === "생일" ? "birthday" : ev.label === "휴가" ? "vacation" : ev.label === "출장" ? "business_trip" : "other";
-            return `<span class="pdf-event-chip ${cls}">${ev.icon} ${ev.name}${ev.dateStr ? ` <span class="pdf-event-date">(${ev.dateStr})</span>` : ""}</span>`;
+          ${Object.entries(weekEventGroups).map(([group, { icon, items }]) => {
+            const people = items.map(it => {
+              let txt = it.name;
+              if (it.dateStr) txt += `(${it.dateStr})`;
+              if (it.subLabel) txt += ` [${it.subLabel}]`;
+              return txt;
+            }).join(", ");
+            return `<div class="pdf-event-line"><span class="pdf-event-group-label ${group}">${icon} ${group}:</span><span class="pdf-event-people">${people}</span></div>`;
           }).join("")}
         </div>` : ""}
-        <div class="pdf-meta">삼성서울병원 경영지원팀<br>출력일: ${printDate}</div>
+        <div style="font-size:11px;color:#9ca3af;text-align:right;flex-shrink:0">출력일: ${printDate}</div>
       </div>
       ${content}
     </body></html>`);

@@ -685,6 +685,8 @@ input, select, textarea { outline: none; }
   margin-bottom: 4px; font-size: 13px;
 }
 .cal-year-event.vacation { background: var(--yellow-soft); }
+.cal-year-event.vacation-half, .cal-year-event.vacation_half_am, .cal-year-event.vacation_half_pm { background: #fef3c7; border-left: 3px solid #f59e0b; }
+.cal-year-event.vacation-quarter, .cal-year-event.vacation_q_am1, .cal-year-event.vacation_q_am2, .cal-year-event.vacation_q_pm1, .cal-year-event.vacation_q_pm2 { background: #fffbeb; border-left: 3px dotted #fcd34d; }
 .cal-year-event.business_trip { background: var(--primary-soft); }
 .cal-year-event.education { background: #e8f5e9; }
 .cal-year-event.birthday { background: #fde8f0; }
@@ -758,6 +760,8 @@ input, select, textarea { outline: none; }
   font-size: 13px; gap: 8px;
 }
 .cal-date-modal-event.vacation { background: var(--yellow-soft); }
+.cal-date-modal-event.vacation-half, .cal-date-modal-event.vacation_half_am, .cal-date-modal-event.vacation_half_pm { background: #fef3c7; }
+.cal-date-modal-event.vacation-quarter, .cal-date-modal-event.vacation_q_am1, .cal-date-modal-event.vacation_q_am2, .cal-date-modal-event.vacation_q_pm1, .cal-date-modal-event.vacation_q_pm2 { background: #fffbeb; }
 .cal-date-modal-event.business_trip { background: var(--primary-soft); }
 .cal-date-modal-event.education { background: #e8f5e9; }
 .cal-date-modal-event.birthday { background: #fde8f0; }
@@ -861,6 +865,10 @@ input, select, textarea { outline: none; }
   outline-offset: -3px;
 }
 .cal-event.vacation { background: var(--yellow-soft); color: #b87000; }
+/* 반차: 같은 계열, 약간 다른 톤 */
+.cal-event.vacation-half { background: #fef3c7; color: #92400e; border-left: 3px solid #f59e0b; }
+/* 반반차: 더 연한 톤 */
+.cal-event.vacation-quarter { background: #fffbeb; color: #b45309; border-left: 3px dotted #fcd34d; }
 .cal-event.business_trip { background: var(--primary-soft); color: var(--primary-dark); }
 .cal-event.education { background: #e8f5e9; color: #2e7d32; }
 .cal-event.birthday { background: #fde8f0; color: #c2185b; font-weight: 700; }

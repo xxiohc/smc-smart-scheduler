@@ -403,7 +403,15 @@
     <div class="cal-date-modal-form">
       <div class="cal-date-form-title">+ 일정 등록</div>
       <select id="popEventType">
-        <option value="vacation">🏖 휴가</option>
+        <optgroup label="휴가">
+          <option value="vacation">🏖 종일 휴가</option>
+          <option value="vacation_half_am">🌤 오전 반차</option>
+          <option value="vacation_half_pm">🌦 오후 반차</option>
+          <option value="vacation_q_am1">◔ 오전(1) 반반차</option>
+          <option value="vacation_q_am2">◑ 오전(2) 반반차</option>
+          <option value="vacation_q_pm1">◕ 오후(1) 반반차</option>
+          <option value="vacation_q_pm2">◉ 오후(2) 반반차</option>
+        </optgroup>
         <option value="business_trip">✈️ 출장</option>
         <option value="education">📚 교육</option>
         <option value="birthday">🎂 생일</option>
