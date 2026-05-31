@@ -5128,11 +5128,58 @@ function wireEvents() {
   });
 }
 
+/* ── 주차별 취합 이벤트 요약 표시 ── */
+async function renderCompEventSummary(year, week) {
+  const el = $("compEventSummary");
+  if (!el) return;
+  el.innerHTML = "";
+  try {
+    const ws = weekStart(year, week), we = weekEnd(year, week);
+    const fmtMD  = (d) => `${d.getMonth()+1}/${d.getDate()}`;
+    const isoFmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const startStr = isoFmt(ws), endStr = isoFmt(we);
+    const evData = await api("GET", `/api/events?start=${startStr}&end=${endStr}`);
+    // 생일 보완
+    const bdaySet = new Set(evData.filter(e => e.type === "birthday").map(e => e.member_id));
+    S.members.forEach(m => {
+      if (!m.birthday || bdaySet.has(m.id)) return;
+      const parts = m.birthday.split("-");
+      const bday = new Date(ws.getFullYear(), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+      if (bday >= ws && bday <= we) evData.push({ type: "birthday", member: m, start_date: isoFmt(bday) });
+    });
+    // 그룹화
+    const groups = {};
+    evData.forEach(e => {
+      const cfg = EVENT_TYPES[e.type] || { label: e.type, icon: "📅", group: e.type };
+      const group = cfg.group || cfg.label;
+      const name = e.member?.name || e.title || "";
+      const sd = e.start_date ? new Date(e.start_date + "T00:00:00") : null;
+      const ed = e.end_date   ? new Date(e.end_date   + "T00:00:00") : null;
+      const dateStr = sd && ed && isoFmt(sd) !== isoFmt(ed) ? `${fmtMD(sd)}~${fmtMD(ed)}` : (sd ? fmtMD(sd) : "");
+      const subLabel = e.type !== "vacation" && cfg.group === "휴가" ? cfg.label : "";
+      if (!groups[group]) groups[group] = { icon: cfg.icon, items: [] };
+      groups[group].items.push({ name, dateStr, subLabel });
+    });
+    if (!Object.keys(groups).length) return;
+    const chips = Object.entries(groups).map(([group, { icon, items }]) => {
+      const people = items.map(it => {
+        let label = it.name;
+        if (it.dateStr) label += `(${it.dateStr})`;
+        if (it.subLabel) label += ` [${it.subLabel}]`;
+        return label;
+      }).join(", ");
+      return `<span class="comp-event-chip"><span class="comp-event-icon">${icon}</span><strong>${group}:</strong> ${esc(people)}</span>`;
+    });
+    el.innerHTML = chips.join("");
+  } catch(e) { /* 무시 */ }
+}
+
 /* ── 주차별 취합 ───────────────────────────────────────── */
 async function renderCompilation() {
   if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
   const { year, week } = S.comp;
   $("compWeekLabel").textContent = weekLabel(year, week);
+  renderCompEventSummary(year, week);
 
   const result = $("compilationResult");
   result.innerHTML = '<div class="loading">불러오는 중...</div>';

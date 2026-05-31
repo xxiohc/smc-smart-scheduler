@@ -2120,6 +2120,18 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   border-radius: 6px;
 }
 
+/* ── 주차별 취합 이벤트 요약 ─────────────────────────── */
+.comp-event-summary {
+  display: flex; flex-wrap: wrap; gap: 6px 12px;
+  margin-top: 4px; min-height: 20px;
+}
+.comp-event-chip {
+  font-size: 12px; color: var(--subtle);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.comp-event-chip strong { color: var(--primary); font-weight: 700; }
+.comp-event-icon { font-size: 13px; }
+
 /* ── 취합 파트 완료 버튼 & 뱃지 ───────────────────────── */
 .comp-part-submit-btn {
   display: block; width: 100%; margin-top: 12px;
