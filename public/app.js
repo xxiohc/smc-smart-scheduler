@@ -5303,11 +5303,15 @@ async function renderCompilation() {
           return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDate ? `<span class="arc-sub-date">(${sDate})</span>` : ""}</div>`;
         }).join("")}</div>` : "";
     const delBtn = editable ? `<button class="comp-item-del" title="삭제">✕</button>` : "";
+    const editHint = editable ? ` comp-item-editable` : "";
     const row = document.createElement("div");
-    row.className = `archive-item ${st}`;
+    row.className = `archive-item ${st}${editHint}`;
     row.innerHTML = `<span class="archive-item-dot"></span><div class="arc-item-body">${catHtml}${mainText}${badgeHtml}${subsHtml}</div>${delBtn}`;
     if (editable) {
-      row.querySelector(".comp-item-del").addEventListener("click", async () => {
+      // 본문 클릭 → 편집 모달
+      row.querySelector(".arc-item-body").addEventListener("click", () => openEditItemModal(item, part));
+      row.querySelector(".comp-item-del").addEventListener("click", async (e) => {
+        e.stopPropagation();
         if (!confirm(`"${item.cat2 || item.text}" 항목을 삭제하시겠습니까?`)) return;
         const fresh = await api("GET", `/api/compilation?week=${weekKey}`);
         const updated = (fresh.items || []).filter(e => e.id !== item.id);
@@ -5316,6 +5320,162 @@ async function renderCompilation() {
       });
     }
     return row;
+  };
+
+  // ── 항목 편집 모달 ──
+  const openEditItemModal = (item, part) => {
+    const COMP_PARTS_ALL = ["구매파트", "의공파트", "재무관리파트", "경영관리파트"];
+    const getCat1List = (forPart) => Object.keys(PART_CATEGORIES[forPart] || {});
+    const getMemberOpts = (forPart, selName = "") =>
+      S.members.filter(m => m.part === forPart)
+        .map(m => `<option value="${esc(m.name)}"${m.name === selName ? " selected" : ""}>${esc(m.name)}</option>`).join("");
+    const getCat1Opts = (forPart, sel = "") =>
+      getCat1List(forPart).map(c => `<option value="${esc(c)}"${c === sel ? " selected" : ""}>${esc(c)}</option>`).join("");
+    const getCat2Opts = (forPart, cat1Val, sel = "") => {
+      const list = (PART_CATEGORIES[forPart] || {})[cat1Val] || [];
+      return list.map(c => `<option value="${esc(c)}"${c === sel ? " selected" : ""}>${esc(c)}</option>`).join("");
+    };
+    const partOpts = isAdmin
+      ? COMP_PARTS_ALL.map(p => `<option value="${esc(p)}"${p === (item.memberPart || part) ? " selected" : ""}>${esc(p)}</option>`).join("")
+      : `<option value="${esc(part)}" selected>${esc(part)}</option>`;
+
+    const initPart = item.memberPart || part;
+    const initCat1 = item.cat1 || "";
+    const initCat2 = item.cat2 || item.text || "";
+    const initStatus = _WEEK_LEGACY[item.status] || item.status || "in_progress";
+
+    $("modalCard").innerHTML = `
+      <div class="modal-header">
+        <h3 class="modal-title">항목 수정</h3>
+        <button id="compEditModalClose" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        ${isAdmin ? `
+        <div class="form-field">
+          <label>파트</label>
+          <select id="emi_part" class="form-input">${partOpts}</select>
+        </div>` : ""}
+        <div class="form-field">
+          <label>카테고리(1)</label>
+          <select id="emi_cat1" class="form-input">
+            <option value="">-- 선택 --</option>
+            ${getCat1Opts(initPart, initCat1)}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
+          <select id="emi_cat2_sel" class="form-input">
+            <option value="">-- 선택 또는 직접 입력 --</option>
+            ${getCat2Opts(initPart, initCat1, initCat2)}
+          </select>
+          <input id="emi_cat2" class="form-input" style="margin-top:6px" placeholder="직접 입력 (또는 위에서 선택)" value="${esc(initCat2)}" />
+        </div>
+        <div class="form-field">
+          <label>담당자</label>
+          <select id="emi_member" class="form-input">
+            <option value="">-- 선택 --</option>
+            ${getMemberOpts(initPart, item.memberName || "")}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>상태</label>
+          <div class="cmi-status-group">
+            <button type="button" class="cmi-status-btn${initStatus === "waiting" ? " active" : ""}" data-key="waiting">계획</button>
+            <button type="button" class="cmi-status-btn${initStatus === "in_progress" ? " active" : ""}" data-key="in_progress">진행</button>
+            <button type="button" class="cmi-status-btn${initStatus === "done" ? " active" : ""}" data-key="done">완료</button>
+            <button type="button" class="cmi-status-btn${initStatus === "hold" ? " active" : ""}" data-key="hold">보류</button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>기한 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <input id="emi_date" type="date" class="form-input" value="${item.date || ""}" />
+        </div>
+        <div class="form-field">
+          <label>세부업무 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <div id="emi_subs_wrap"></div>
+          <button id="emi_add_sub" class="comp-add-sub-btn" style="margin-top:4px">+ 세부업무 추가</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="emi_save" class="btn-primary">저장</button>
+        <button id="emi_cancel" class="btn-ghost">취소</button>
+      </div>
+    `;
+    $("modal").classList.remove("hidden");
+
+    let curPart = initPart;
+    let selStatus = initStatus;
+
+    // 파트 변경 (팀장)
+    if (isAdmin) {
+      $("emi_part").addEventListener("change", () => {
+        curPart = $("emi_part").value;
+        $("emi_cat1").innerHTML = `<option value="">-- 선택 --</option>${getCat1Opts(curPart)}`;
+        $("emi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>`;
+        $("emi_cat2").value = "";
+        $("emi_member").innerHTML = `<option value="">-- 선택 --</option>${getMemberOpts(curPart)}`;
+      });
+    }
+    // cat1 변경 → cat2 목록
+    $("emi_cat1").addEventListener("change", () => {
+      const cat1Val = $("emi_cat1").value;
+      $("emi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>${getCat2Opts(curPart, cat1Val)}`;
+      $("emi_cat2").value = "";
+    });
+    // cat2 드롭다운 → input 반영
+    $("emi_cat2_sel").addEventListener("change", () => {
+      if ($("emi_cat2_sel").value) $("emi_cat2").value = $("emi_cat2_sel").value;
+    });
+    // 상태 버튼 토글
+    $("modalCard").querySelectorAll(".cmi-status-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selStatus = btn.dataset.key;
+        $("modalCard").querySelectorAll(".cmi-status-btn").forEach(b => b.classList.toggle("active", b.dataset.key === selStatus));
+      });
+    });
+
+    // 세부업무
+    let subsList = (item.subtasks || []).map(s => ({ ...s }));
+    const rebuildSubs = () => {
+      const wrap = $("emi_subs_wrap");
+      wrap.innerHTML = "";
+      subsList.forEach((s, si) => {
+        const r = document.createElement("div");
+        r.className = "cmi-sub-row";
+        r.innerHTML = `<input class="form-input" style="flex:1" value="${esc(s.text || "")}" placeholder="세부업무 내용" /><input type="date" class="form-input cmi-sub-date" value="${s.due_date||""}" /><button class="comp-sub-del">✕</button>`;
+        r.querySelector("input").addEventListener("input", e => { subsList[si].text = e.target.value; });
+        r.querySelectorAll("input")[1].addEventListener("change", e => { subsList[si].due_date = e.target.value; });
+        r.querySelector("button").addEventListener("click", () => { subsList.splice(si, 1); rebuildSubs(); });
+        wrap.appendChild(r);
+      });
+    };
+    rebuildSubs();
+    $("emi_add_sub").addEventListener("click", () => { subsList.push({ text: "", status: "in_progress", due_date: "" }); rebuildSubs(); });
+
+    const close = () => $("modal").classList.add("hidden");
+    $("compEditModalClose").addEventListener("click", close);
+    $("emi_cancel").addEventListener("click", close);
+    $("emi_save").addEventListener("click", async () => {
+      const cat2 = $("emi_cat2").value.trim() || $("emi_cat2_sel").value;
+      if (!cat2) { showToast("카테고리(2) / 업무명을 입력하세요.", "error"); $("emi_cat2").focus(); return; }
+      const finalPart = isAdmin ? ($("emi_part").value || part) : part;
+      const updated = {
+        ...item,
+        cat1: $("emi_cat1").value,
+        cat2, text: cat2,
+        status: selStatus,
+        date: $("emi_date").value,
+        subtasks: subsList.filter(s => (s.text || "").trim()),
+        memberName: $("emi_member").value,
+        memberPart: finalPart,
+      };
+      const fresh = await api("GET", `/api/compilation?week=${weekKey}`);
+      const newItems = (fresh.items || []).map(e => e.id === item.id ? updated : e);
+      await api("PUT", "/api/compilation", { week: weekKey, items: newItems, order: fresh.order || currentOrder, partStatus: fresh.partStatus || partStatus });
+      close();
+      showToast("✅ 항목이 수정됐습니다.");
+      renderCompilation();
+    });
   };
 
   // ── 항목 추가 모달 ──
