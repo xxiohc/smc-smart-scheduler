@@ -522,8 +522,9 @@ async function handleGetReports(req, res, url) {
 
   if (year) reports = reports.filter((r) => r.year === year);
   if (week) reports = reports.filter((r) => r.week === week);
-  if (month) reports = reports.filter((r) => r.month === month);
-  if (quarter) reports = reports.filter((r) => Math.ceil(r.month / 3) === quarter);
+  // month/quarter는 저장된 필드가 아닌 year+week로 실시간 계산 (저장 오류 방지)
+  if (month) reports = reports.filter((r) => weekToMonth(r.year, r.week) === month);
+  if (quarter) reports = reports.filter((r) => Math.ceil(weekToMonth(r.year, r.week) / 3) === quarter);
   if (part) {
     const memberIds = db.members.filter((m) => m.part === part).map((m) => m.id);
     reports = reports.filter((r) => memberIds.includes(r.member_id));
