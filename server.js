@@ -985,18 +985,27 @@ async function handleGetCompilation(req, res, url) {
   const db = await loadDb();
   const week = url.searchParams.get("week") || "";
   if (!db.compilation) db.compilation = {};
-  json(res, { week, items: db.compilation[week] || [] });
+  const stored = db.compilation[week];
+  // 구버전 호환: 배열로 저장된 경우 { items, order } 형식으로 변환
+  if (Array.isArray(stored)) {
+    json(res, { week, items: stored, order: {} });
+  } else {
+    json(res, { week, items: stored?.items || [], order: stored?.order || {} });
+  }
 }
 
 async function handleSaveCompilation(req, res) {
   const memberId = getMemberFromRequest(req);
   if (!memberId) return err(res, "인증이 필요합니다.", 401);
   const body = await parseBody(req);
-  const { week, items } = body;
+  const { week, items, order } = body;
   if (!week) return err(res, "week 필드는 필수입니다.");
   const db = await loadDb();
   if (!db.compilation) db.compilation = {};
-  db.compilation[week] = items || [];
+  // order 포함해서 저장 (없으면 기존 order 유지)
+  const prev = db.compilation[week];
+  const prevOrder = Array.isArray(prev) ? {} : (prev?.order || {});
+  db.compilation[week] = { items: items || [], order: order !== undefined ? order : prevOrder };
   await saveDb(db);
   json(res, { ok: true });
 }

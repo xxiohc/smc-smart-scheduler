@@ -2094,6 +2094,24 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   color: var(--muted);
   font-size: 12px;
 }
+/* ── drag & drop ─ */
+.comp-drag-handle {
+  font-size: 13px;
+  color: var(--muted);
+  cursor: grab;
+  margin-right: 6px;
+  user-select: none;
+  opacity: 0.5;
+}
+.comp-cat1-head:hover .comp-drag-handle { opacity: 1; color: var(--primary); }
+.comp-part-col .comp-cat1-section { cursor: default; }
+.comp-cat1-section.comp-drag-source { opacity: 0.4; }
+.comp-cat1-section.comp-drag-over {
+  outline: 2px dashed var(--primary);
+  outline-offset: -2px;
+  background: var(--primary-soft);
+  border-radius: 6px;
+}
 
 /* ═══════════════════════════════════════════════════════════
    FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)

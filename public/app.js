@@ -4888,55 +4888,80 @@ function wireEvents() {
   // PDF 내보내기
   $("compPdfBtn").addEventListener("click", () => {
     const { year, week } = S.comp;
-    const title = `경영지원팀 주간업무 취합본 — ${weekLabel(year, week)}`;
+    const ws = weekStart(year, week), we = weekEnd(year, week);
+    const fmt = (d) => `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+    const wkRange = `${fmt(ws)} ~ ${fmt(we)}`;
+    const title = `경영지원팀 주간업무 취합본`;
+    const subTitle = `${weekLabel(year, week)} (${wkRange})`;
     const content = document.getElementById("compilationResult").innerHTML;
-    const printWin = window.open("", "_blank", "width=900,height=700");
+    const printDate = fmt(new Date());
+    const printWin = window.open("", "_blank", "width=1200,height=800");
     printWin.document.write(`<!DOCTYPE html><html><head>
       <meta charset="utf-8"/>
-      <title>${title}</title>
+      <title>${title} ${subTitle}</title>
       <style>
-        body { font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; margin: 30px; color: #111827; }
-        h1 { font-size: 18px; margin-bottom: 6px; }
-        .comp-cat1-section { margin-bottom: 18px; }
-        .comp-cat1-head { font-size: 15px; font-weight: 800; border-bottom: 2px solid #3182f6; padding-bottom: 4px; margin-bottom: 8px; color: #1b64da; }
-        .comp-member-inline { font-size: 12px; color: #6b7280; }
-        .archive-member-part { font-size: 12px; color: #6b7280; font-weight: 400; margin-left: 6px; }
-        .archive-items { display: flex; flex-direction: column; gap: 0; }
-        .archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: #111827; padding: 5px 0; border-bottom: 1px solid #e5e7eb; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #fff; color: #111827; padding: 24px 28px; font-size: 13px; }
+        /* ─ 헤더 ─ */
+        .pdf-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2.5px solid #1b64da; padding-bottom: 10px; margin-bottom: 18px; }
+        .pdf-title { font-size: 20px; font-weight: 800; color: #1b64da; letter-spacing: -0.3px; }
+        .pdf-subtitle { font-size: 13px; color: #374151; margin-top: 3px; font-weight: 500; }
+        .pdf-meta { font-size: 11px; color: #9ca3af; text-align: right; line-height: 1.6; }
+        /* ─ 4열 그리드 ─ */
+        .comp-parts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: start; }
+        .comp-part-col { border: 1.5px solid #d1d5db; border-radius: 8px; overflow: hidden; }
+        .comp-part-col-head { background: #1b64da; color: #fff; font-size: 12px; font-weight: 700; padding: 7px 10px; text-align: center; letter-spacing: 0.02em; }
+        /* ─ cat1 섹션 ─ */
+        .comp-cat1-section { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+        .comp-cat1-section:last-child { border-bottom: none; }
+        .comp-cat1-head { font-size: 12px; font-weight: 800; color: #1b64da; border-bottom: 1.5px solid #bfdbfe; padding-bottom: 3px; margin-bottom: 6px; }
+        .comp-drag-handle { display: none; }
+        /* ─ 업무 항목 ─ */
+        .archive-items { display: flex; flex-direction: column; }
+        .archive-item { display: flex; align-items: flex-start; gap: 6px; padding: 4px 0; border-bottom: 1px solid #f3f4f6; }
         .archive-item:last-child { border-bottom: none; }
-        .archive-item-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #9ca3af; margin-top: 6px; }
+        .archive-item-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: #9ca3af; margin-top: 5px; }
         .archive-item.done .archive-item-dot { background: #16a34a; }
         .archive-item.in_progress .archive-item-dot { background: #3182f6; }
         .archive-item.hold .archive-item-dot { background: #eab308; }
         .archive-item.waiting .archive-item-dot { background: #f59e0b; }
-        .arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+        .arc-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .arc-cats { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-        .arc-cat1 { font-size: 14px; font-weight: 700; color: #1b64da; }
-        .arc-cat-sep { font-size: 12px; color: #9ca3af; }
-        .arc-cat2 { font-size: 14px; font-weight: 600; color: #111827; }
-        .arc-main-text { font-size: 14px; color: #6b7280; }
-        .archive-task-weeks { font-size: 12px; color: #6b7280; white-space: nowrap; }
-        .arc-status-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+        .arc-cat2 { font-size: 12px; font-weight: 700; color: #111827; }
+        .arc-main-text { font-size: 11px; color: #6b7280; }
+        .comp-member-inline { font-size: 10px; color: #9ca3af; }
+        .archive-task-weeks { font-size: 10px; color: #9ca3af; }
+        .comp-status-prog { font-size: 10px; color: #3182f6; background: #eff6ff; border-radius: 3px; padding: 1px 4px; }
+        .arc-status-badge { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 6px; }
         .arc-status-badge.done { background: #dcfce7; color: #16a34a; }
         .arc-status-badge.hold { background: #fef9c3; color: #a16207; }
         .arc-status-badge.waiting { background: #fef3c7; color: #d97706; }
-        .arc-subs { width: 100%; display: flex; flex-direction: column; gap: 2px; padding-left: 4px; margin-top: 2px; }
-        .arc-sub-row { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #6b7280; }
-        .arc-sub-row.done .arc-sub-text { text-decoration: line-through; }
-        .arc-sub-dot { width: 4px; height: 4px; border-radius: 50%; background: #d1d5db; }
-        .arc-sub-date { font-size: 11px; color: #9ca3af; }
-        .comp-member-tag { font-size: 11px; color: #6b7280; white-space: nowrap; padding-top: 3px; }
-        .comp-item-del, .empty-state { display: none; }
-        .empty-icon { display: none; }
+        .arc-subs { display: flex; flex-direction: column; gap: 1px; padding-left: 6px; margin-top: 2px; }
+        .arc-sub-row { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #6b7280; }
+        .arc-sub-row.done .arc-sub-text { text-decoration: line-through; color: #9ca3af; }
+        .arc-sub-dot { width: 3px; height: 3px; border-radius: 50%; flex-shrink: 0; background: #d1d5db; }
+        .arc-sub-date { font-size: 10px; color: #9ca3af; }
+        /* ─ 숨길 요소 ─ */
+        .comp-item-del, .comp-col-empty, .empty-state, .loading { display: none; }
+        @media print {
+          body { padding: 16px 18px; }
+          .comp-parts-grid { gap: 8px; }
+          @page { margin: 1cm; size: A4 landscape; }
+        }
       </style>
     </head><body>
-      <h1>${title}</h1>
-      <hr style="margin-bottom:20px"/>
+      <div class="pdf-header">
+        <div>
+          <div class="pdf-title">📋 ${title}</div>
+          <div class="pdf-subtitle">${subTitle}</div>
+        </div>
+        <div class="pdf-meta">삼성서울병원 경영지원팀<br>출력일: ${printDate}</div>
+      </div>
       ${content}
     </body></html>`);
     printWin.document.close();
     printWin.focus();
-    setTimeout(() => { printWin.print(); }, 500);
+    setTimeout(() => { printWin.print(); }, 600);
   });
 
   // 받은 피드백 토글
@@ -5001,6 +5026,7 @@ async function renderCompilation() {
   }
 
   const items = data.items || [];
+  const currentOrder = data.order || {}; // { 파트명: [cat1, cat1, ...] }
 
   if (items.length === 0) {
     result.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128203;</div>취합된 항목이 없습니다.<br><span style="font-size:13px;color:var(--muted)">업무 아카이빙에서 항목을 선택해 취합본에 추가하세요.</span></div>`;
@@ -5008,6 +5034,8 @@ async function renderCompilation() {
   }
 
   result.innerHTML = "";
+
+  const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
   // subtasks 없는 항목은 해당 주 리포트에서 자동 보완 후 재저장
   if (items.some(it => !it.subtasks)) {
@@ -5031,10 +5059,9 @@ async function renderCompilation() {
           changed = true;
         }
       });
-      // 보완된 데이터 서버에 다시 저장
+      // 보완된 데이터 서버에 다시 저장 (order 유지)
       if (changed) {
-        const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
-        await api("PUT", "/api/compilation", { week: weekKey, items });
+        await api("PUT", "/api/compilation", { week: weekKey, items, order: currentOrder });
       }
     } catch (e) { /* 보완 실패 시 무시 */ }
   }
@@ -5089,10 +5116,11 @@ async function renderCompilation() {
       <button class="comp-item-del" title="삭제">✕</button>
     `;
     row.querySelector(".comp-item-del").addEventListener("click", async () => {
-      const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
-      const cur = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
+      const fresh = await api("GET", `/api/compilation?week=${weekKey}`);
+      const cur = fresh.items || [];
+      const latestOrder = fresh.order || currentOrder;
       const updated = cur.filter((e) => e.id !== item.id);
-      await api("PUT", "/api/compilation", { week: weekKey, items: updated });
+      await api("PUT", "/api/compilation", { week: weekKey, items: updated, order: latestOrder });
       renderCompilation();
     });
     return row;
@@ -5111,6 +5139,9 @@ async function renderCompilation() {
     byPart[part][c1].push(item);
   });
 
+  // 드래그 상태 추적
+  let _dragPart = null, _dragCat1 = null;
+
   const grid = document.createElement("div");
   grid.className = "comp-parts-grid";
 
@@ -5124,7 +5155,16 @@ async function renderCompilation() {
     col.appendChild(colHead);
 
     const cat1Map = byPart[part];
-    const cat1Keys = Object.keys(cat1Map).sort((a, b) => a.localeCompare(b, "ko"));
+
+    // currentOrder[part] 기준으로 정렬, 없는 항목은 가나다순 뒤에
+    const cat1Keys = Object.keys(cat1Map).sort((a, b) => {
+      const ord = currentOrder[part] || [];
+      const ai = ord.indexOf(a), bi = ord.indexOf(b);
+      if (ai >= 0 && bi >= 0) return ai - bi;
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return a.localeCompare(b, "ko");
+    });
 
     if (cat1Keys.length === 0) {
       const empty = document.createElement("div");
@@ -5141,16 +5181,60 @@ async function renderCompilation() {
 
         const section = document.createElement("div");
         section.className = "comp-cat1-section";
+        section.draggable = true;
+        section.dataset.part = part;
+        section.dataset.cat1 = cat1;
 
         const catHead = document.createElement("div");
         catHead.className = "comp-cat1-head";
-        catHead.textContent = cat1;
+        catHead.innerHTML = `<span class="comp-drag-handle" title="드래그로 순서 변경">⠿</span>${esc(cat1)}`;
         section.appendChild(catHead);
 
         const itemsWrap = document.createElement("div");
         itemsWrap.className = "archive-items";
         catItems.forEach(item => itemsWrap.appendChild(makeItemRow(item)));
         section.appendChild(itemsWrap);
+
+        // ── 드래그앤드롭 이벤트 ──
+        section.addEventListener("dragstart", (e) => {
+          _dragPart = part; _dragCat1 = cat1;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", `${part}::${cat1}`);
+          setTimeout(() => section.classList.add("comp-drag-source"), 0);
+        });
+        section.addEventListener("dragend", () => {
+          section.classList.remove("comp-drag-source");
+          grid.querySelectorAll(".comp-drag-over").forEach(el => el.classList.remove("comp-drag-over"));
+          _dragPart = null; _dragCat1 = null;
+        });
+        section.addEventListener("dragover", (e) => {
+          if (_dragPart !== part || _dragCat1 === cat1) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          grid.querySelectorAll(".comp-drag-over").forEach(el => el.classList.remove("comp-drag-over"));
+          section.classList.add("comp-drag-over");
+        });
+        section.addEventListener("dragleave", (e) => {
+          if (!section.contains(e.relatedTarget)) section.classList.remove("comp-drag-over");
+        });
+        section.addEventListener("drop", async (e) => {
+          e.preventDefault();
+          section.classList.remove("comp-drag-over");
+          const srcCat1 = _dragCat1, srcPart = _dragPart;
+          if (!srcCat1 || srcPart !== part || srcCat1 === cat1) return;
+
+          // 현재 파트의 표시 순서에서 srcCat1을 tgtCat1 앞으로 이동
+          const displayed = [...cat1Keys]; // 드롭 당시 화면 순서
+          const filtered = displayed.filter(k => k !== srcCat1);
+          const tgtIdx = filtered.indexOf(cat1);
+          filtered.splice(tgtIdx >= 0 ? tgtIdx : filtered.length, 0, srcCat1);
+          currentOrder[part] = filtered;
+
+          // 저장
+          await api("PUT", "/api/compilation", { week: weekKey, items, order: currentOrder });
+          renderCompilation();
+        });
+
         col.appendChild(section);
       });
     }
