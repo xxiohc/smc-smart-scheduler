@@ -5129,34 +5129,44 @@ async function renderCompilation() {
 
   const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
-  // subtasks 없는 항목은 해당 주 리포트에서 자동 보완 후 재저장
-  if (items.some(it => !it.subtasks)) {
-    try {
-      const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
-      const reportByName = {};
-      reports.forEach(r => {
-        if (r.member?.name) reportByName[r.member.name] = getReportTasks(r);
-      });
-      let changed = false;
-      items.forEach(it => {
-        if (!it.subtasks) {
-          const tasks = reportByName[it.memberName] || [];
-          const match = tasks.find(t =>
-            (t.cat2 || t.category || "") === (it.cat2 || "") &&
-            (t.cat1 || "") === (it.cat1 || "")
-          );
-          it.subtasks = (match?.subtasks || []).filter(s => s.text?.trim()).map(s => ({
-            text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
-          }));
+  // ── 최신 리포트에서 status / date / subtasks 동기화 ──────────────
+  // 업무 수정 후 취합에도 즉시 반영되도록 매 렌더링마다 실행
+  try {
+    const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
+    const reportByName = {};
+    reports.forEach(r => {
+      if (r.member?.name) reportByName[r.member.name] = getReportTasks(r);
+    });
+    let changed = false;
+    items.forEach(it => {
+      const tasks = reportByName[it.memberName] || [];
+      const match = tasks.find(t =>
+        (t.cat2 || t.category || "") === (it.cat2 || "") &&
+        (t.cat1 || "") === (it.cat1 || "")
+      );
+      if (match) {
+        const newStatus = match.status || "in_progress";
+        const newDate   = match.date || "";
+        const newSubs   = (match.subtasks || []).filter(s => s.text?.trim()).map(s => ({
+          text: s.text, status: s.status || "in_progress", due_date: s.due_date || "",
+        }));
+        if (it.status !== newStatus || it.date !== newDate ||
+            JSON.stringify(it.subtasks) !== JSON.stringify(newSubs)) {
+          it.status   = newStatus;
+          it.date     = newDate;
+          it.subtasks = newSubs;
           changed = true;
         }
-      });
-      // 보완된 데이터 서버에 다시 저장 (order 유지)
-      if (changed) {
-        await api("PUT", "/api/compilation", { week: weekKey, items, order: currentOrder });
+      } else if (!it.subtasks) {
+        // 리포트 없는 경우 subtasks 초기화만
+        it.subtasks = [];
+        changed = true;
       }
-    } catch (e) { /* 보완 실패 시 무시 */ }
-  }
+    });
+    if (changed) {
+      await api("PUT", "/api/compilation", { week: weekKey, items, order: currentOrder });
+    }
+  } catch (e) { /* 동기화 실패 시 무시하고 저장된 데이터로 표시 */ }
 
   // 해당 주 날짜 범위
   const ws = weekStart(year, week), we = weekEnd(year, week);
