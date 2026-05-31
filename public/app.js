@@ -2396,7 +2396,7 @@ async function doArchiveSearch() {
               ? `<div class="arc-subs">${subs.map(s => {
                   const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
                   const done = s.done || sSt === "done";
-                  const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+                  const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
                   const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
                   return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
                 }).join("")}</div>`
@@ -2845,7 +2845,7 @@ async function doYearlyArchive(year, result) {
               ? `<div class="arc-subs">${subs.map((s) => {
                   const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
                   const done = s.done || sSt === "done";
-                  const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+                  const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
                   const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
                   return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
                 }).join("")}</div>`
@@ -5042,7 +5042,7 @@ async function renderCompilation() {
       ? `<div class="arc-subs">${subs.map(s => {
           const sSt = _WEEK_LEGACY[s.status] || s.status || "in_progress";
           const done = s.done || sSt === "done";
-          const sDate = (s.due_date && sSt !== "in_progress") ? s.due_date.slice(5).replace("-", "/") : "";
+          const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
           const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
           return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
         }).join("")}</div>`
