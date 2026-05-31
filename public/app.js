@@ -5804,7 +5804,74 @@ async function renderCompilation() {
     grid.appendChild(col);
   });
 
+  // ── 모바일 슬라이드 네비게이션 ──────────────────────────
+  const mobileNav = document.createElement("div");
+  mobileNav.className = "comp-mobile-nav";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "comp-mobile-nav-arrow";
+  prevBtn.innerHTML = "‹";
+  prevBtn.disabled = true;
+
+  const tabsWrap = document.createElement("div");
+  tabsWrap.className = "comp-mobile-nav-tabs";
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "comp-mobile-nav-arrow";
+  nextBtn.innerHTML = "›";
+
+  mobileNav.appendChild(prevBtn);
+  mobileNav.appendChild(tabsWrap);
+  mobileNav.appendChild(nextBtn);
+
+  const dots = document.createElement("div");
+  dots.className = "comp-mobile-dots";
+
+  let curMobileIdx = 0;
+  const partCols = COMP_PARTS.map((_, i) => grid.children[i]);
+
+  const goTo = (idx) => {
+    curMobileIdx = idx;
+    grid.scrollTo({ left: grid.clientWidth * idx, behavior: "smooth" });
+    tabsWrap.querySelectorAll(".comp-mobile-tab").forEach((t, i) => t.classList.toggle("active", i === idx));
+    dots.querySelectorAll(".comp-mobile-dot").forEach((d, i) => d.classList.toggle("active", i === idx));
+    prevBtn.disabled = idx === 0;
+    nextBtn.disabled = idx === COMP_PARTS.length - 1;
+  };
+
+  COMP_PARTS.forEach((part, i) => {
+    // 탭 버튼
+    const tab = document.createElement("button");
+    tab.className = "comp-mobile-tab" + (i === 0 ? " active" : "");
+    const shortName = part.replace("파트", "");
+    const ps = partStatus[part];
+    const badgeText = ps?.submitted ? "✅완료" : (isAdmin ? "미완료" : "");
+    tab.innerHTML = `${esc(shortName)}<span class="comp-mobile-tab-badge">${badgeText}</span>`;
+    tab.addEventListener("click", () => goTo(i));
+    tabsWrap.appendChild(tab);
+
+    // 도트
+    const dot = document.createElement("div");
+    dot.className = "comp-mobile-dot" + (i === 0 ? " active" : "");
+    dots.appendChild(dot);
+  });
+
+  prevBtn.addEventListener("click", () => { if (curMobileIdx > 0) goTo(curMobileIdx - 1); });
+  nextBtn.addEventListener("click", () => { if (curMobileIdx < COMP_PARTS.length - 1) goTo(curMobileIdx + 1); });
+
+  // 스크롤 스냅 동기화 (손가락 스와이프)
+  let _scrollTimer = null;
+  grid.addEventListener("scroll", () => {
+    clearTimeout(_scrollTimer);
+    _scrollTimer = setTimeout(() => {
+      const idx = Math.round(grid.scrollLeft / grid.clientWidth);
+      if (idx !== curMobileIdx) goTo(idx);
+    }, 80);
+  });
+
+  result.appendChild(mobileNav);
   result.appendChild(grid);
+  result.appendChild(dots);
 }
 
 /* ── Boot ─────────────────────────────────────────────── */

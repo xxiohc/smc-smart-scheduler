@@ -2061,6 +2061,104 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   gap: 10px;
   align-items: start;
 }
+/* ── 모바일: 한 파트씩 슬라이드 ── */
+.comp-mobile-nav {
+  display: none;
+}
+@media (max-width: 680px) {
+  .comp-mobile-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 6px 10px;
+  }
+  .comp-mobile-nav-tabs {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+  }
+  .comp-mobile-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .comp-mobile-tab.active {
+    background: var(--primary);
+    color: #fff;
+  }
+  .comp-mobile-tab .comp-mobile-tab-badge {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    margin-top: 1px;
+    opacity: 0.85;
+  }
+  .comp-mobile-nav-arrow {
+    background: none;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .comp-mobile-nav-arrow:disabled { opacity: 0.25; cursor: default; }
+  .comp-mobile-nav-arrow:not(:disabled):active { background: var(--primary-soft); }
+  .comp-parts-grid {
+    display: flex;
+    overflow-x: scroll;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+    scrollbar-width: none;
+  }
+  .comp-parts-grid::-webkit-scrollbar { display: none; }
+  .comp-part-col {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    border-radius: 12px;
+  }
+  /* 모바일 도트 인디케이터 */
+  .comp-mobile-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .comp-mobile-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: all 0.2s;
+  }
+  .comp-mobile-dot.active {
+    background: var(--primary);
+    width: 20px;
+    border-radius: 4px;
+  }
+}
 .comp-part-col {
   border: 1.5px solid var(--line);
   border-radius: var(--radius);
