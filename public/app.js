@@ -2243,7 +2243,7 @@ async function doArchiveSearch() {
         head.addEventListener("click", () => body.classList.toggle("hidden"));
 
         reps.forEach((r) => {
-          const rTasks = getReportTasks(r).filter(i => !doneOnly || (_WEEK_LEGACY[i.status] || i.status) === "done" || (doneOnly && !!i.date));
+          const rTasks = getReportTasks(r).filter(i => !doneOnly || (_WEEK_LEGACY[i.status] || i.status) === "done" || (doneOnly && !!i.date) || (i.subtasks || []).some(s => (_WEEK_LEGACY[s.status] || s.status) === "done"));
           if (doneOnly && rTasks.length === 0) return;
           const row = document.createElement("div");
           row.className = "archive-member-row";
@@ -2359,7 +2359,11 @@ async function doArchiveSearch() {
 
         partMembersFiltered.forEach((m) => {
           const allTasks = memberTaskMap[m.id].tasks;
-          const filteredTasks = doneOnly ? allTasks.filter(i => (_WEEK_LEGACY[i.status] || i.status) === "done" || !!i.date) : allTasks;
+          const filteredTasks = doneOnly ? allTasks.filter(i =>
+            (_WEEK_LEGACY[i.status] || i.status) === "done" ||
+            !!i.date ||
+            (i.subtasks || []).some(s => (_WEEK_LEGACY[s.status] || s.status) === "done")
+          ) : allTasks;
           if (filteredTasks.length === 0) return;
           const sorted = [...filteredTasks].sort((a, b) => {
             // 첫 번째 주차 기준 정렬
@@ -2813,7 +2817,11 @@ async function doYearlyArchive(year, result) {
         partMembersFiltered.forEach((m) => {
           const allTasks = memberTaskMap[m.id].tasks;
           const filteredTasks = doneOnly
-            ? allTasks.filter((i) => (_WEEK_LEGACY[i.status] || i.status) === "done" || !!i.date)
+            ? allTasks.filter((i) =>
+                (_WEEK_LEGACY[i.status] || i.status) === "done" ||
+                !!i.date ||
+                (i.subtasks || []).some(s => (_WEEK_LEGACY[s.status] || s.status) === "done")
+              )
             : allTasks;
           if (filteredTasks.length === 0) return;
           const sorted = [...filteredTasks].sort((a, b) => {
