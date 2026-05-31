@@ -4981,6 +4981,43 @@ function wireEvents() {
     showToast("✅ 최신 데이터로 갱신됐습니다.");
   });
 
+  $("compSyncReportsBtn").addEventListener("click", async () => {
+    const { year, week } = S.comp;
+    const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+    try {
+      const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
+      if (!reports.length) { showToast("해당 주차 제출된 보고서가 없습니다.", "error"); return; }
+      // 기존 취합 유지하고 없는 항목만 추가
+      const existing = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
+      const order = (await api("GET", `/api/compilation?week=${weekKey}`)).order || {};
+      const merged = [...existing];
+      reports.forEach(r => {
+        const memberName = r.member?.name || "";
+        const memberPart = r.member?.part || "";
+        getReportTasks(r).forEach(t => {
+          const cat1 = t.cat1 || "", cat2 = t.cat2 || t.category || "";
+          const isDup = merged.some(e => e.memberName === memberName && e.cat1 === cat1 && e.cat2 === cat2);
+          if (!isDup) {
+            merged.push({
+              id: genLocalId(),
+              text: t.text || cat2,
+              cat1, cat2,
+              status: t.status || "in_progress",
+              date: t.date || "",
+              subtasks: (t.subtasks || []).filter(s => s.text?.trim()).map(s => ({ text: s.text, status: s.status || "in_progress", due_date: s.due_date || "" })),
+              memberName, memberPart,
+              reportYear: year, reportWeek: week,
+            });
+          }
+        });
+      });
+      const added = merged.length - existing.length;
+      await api("PUT", "/api/compilation", { week: weekKey, items: merged, order });
+      showToast(`✅ ${added > 0 ? added + "개 신규 항목 추가됨" : "이미 최신 상태입니다."}`);
+      renderCompilation();
+    } catch(e) { showToast("오류: " + e.message, "error"); }
+  });
+
   $("compThisWeek").addEventListener("click", () => {
     S.comp = { ...S.comp, year: S.dash.year, week: S.dash.week };
     renderCompilation();
@@ -5183,7 +5220,42 @@ async function renderCompilation() {
   const currentOrder = data.order || {}; // { 파트명: [cat1, cat1, ...] }
 
   if (items.length === 0) {
-    result.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128203;</div>취합된 항목이 없습니다.<br><span style="font-size:13px;color:var(--muted)">업무 아카이빙에서 항목을 선택해 취합본에 추가하세요.</span></div>`;
+    // 해당 주차 보고서가 있으면 자동 취합 버튼 제공
+    const weekKey0 = `${year}-W${String(week).padStart(2, "0")}`;
+    result.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128203;</div>취합된 항목이 없습니다.<br>
+      <button id="compAutoFill" class="btn-primary" style="margin-top:12px">&#128196; 이번 주 제출 보고서 자동 취합</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">또는 업무 아카이빙에서 항목을 선택해 추가하세요.</div>
+    </div>`;
+    $("compAutoFill")?.addEventListener("click", async () => {
+      try {
+        const reports = await api("GET", `/api/reports?year=${year}&week=${week}`);
+        if (!reports.length) { showToast("해당 주차 제출된 보고서가 없습니다.", "error"); return; }
+        const newItems = [];
+        reports.forEach(r => {
+          const memberName = r.member?.name || "";
+          const memberPart = r.member?.part || "";
+          getReportTasks(r).forEach(t => {
+            newItems.push({
+              id: genLocalId(),
+              text: t.text || t.cat2 || t.category || "",
+              cat1: t.cat1 || "",
+              cat2: t.cat2 || t.category || "",
+              status: t.status || "in_progress",
+              date: t.date || "",
+              subtasks: (t.subtasks || []).filter(s => s.text?.trim()).map(s => ({ text: s.text, status: s.status || "in_progress", due_date: s.due_date || "" })),
+              memberName,
+              memberPart,
+              reportYear: year,
+              reportWeek: week,
+            });
+          });
+        });
+        if (!newItems.length) { showToast("취합할 업무 항목이 없습니다.", "error"); return; }
+        await api("PUT", "/api/compilation", { week: weekKey0, items: newItems, order: {} });
+        showToast(`✅ ${newItems.length}개 항목이 취합됐습니다.`);
+        renderCompilation();
+      } catch(e) { showToast("오류: " + e.message, "error"); }
+    });
     return;
   }
 
