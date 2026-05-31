@@ -2002,18 +2002,8 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 
-/* ── 아카이빙 취합 편집 ──────────────────────────────────── */
-.archive-compile-bar {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  background: var(--primary-soft); border: 1px solid var(--primary);
-  border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px;
-}
-.archive-compile-bar #archiveCompileCount { font-size: 13px; font-weight: 600; color: var(--primary); }
-.archive-compile-bar #archiveCompileWeekSel { font-size: 13px; }
-.compile-cb { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--primary); margin-right: 6px; vertical-align: middle; }
 .archive-item { cursor: default; }
 #archiveResult .archive-item[data-item] { cursor: pointer; }
-#archiveResult .archive-item[data-item]:has(.compile-cb:checked) { background: #dbeafe; border-radius: 4px; }
 
 /* ── 주차별 취합 탭 ─────────────────────────────────────── */
 .compilation-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

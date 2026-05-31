@@ -4913,54 +4913,6 @@ function wireEvents() {
   $("archiveDoneOnly").addEventListener("change", doArchiveSearch);
   $("archivePdfBtn").addEventListener("click", exportArchivePdf);
 
-  // 취합 편집 토글
-  $("archiveCompileToggle").addEventListener("click", () => {
-    const bar = $("archiveCompileBar");
-    const active = bar.classList.toggle("hidden") === false;
-    $("archiveCompileToggle").classList.toggle("active", active);
-    if (active) {
-      document.querySelectorAll("#archiveResult .archive-item[data-item]").forEach((el) => {
-        if (!el.querySelector(".compile-cb")) {
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.className = "compile-cb";
-          cb.addEventListener("change", updateCompileCount);
-          el.prepend(cb);
-        }
-      });
-      populateCompileWeekSelect();
-    } else {
-      document.querySelectorAll(".compile-cb").forEach((cb) => cb.remove());
-    }
-    updateCompileCount();
-  });
-
-  $("archiveCompileClear").addEventListener("click", () => {
-    document.querySelectorAll(".compile-cb:checked").forEach((cb) => (cb.checked = false));
-    updateCompileCount();
-  });
-
-  $("archiveCompileAdd").addEventListener("click", async () => {
-    const checked = [...document.querySelectorAll(".compile-cb:checked")];
-    if (!checked.length) return;
-    const weekKey = $("archiveCompileWeekSel").value;
-    const newItems = checked.map((cb) => {
-      const data = JSON.parse(cb.closest(".archive-item").dataset.item);
-      return { ...data, id: genLocalId() };
-    });
-    const existing = (await api("GET", `/api/compilation?week=${weekKey}`)).items || [];
-    const merged = [...existing];
-    newItems.forEach((item) => {
-      if (!merged.some((e) => e.text === item.text && e.memberName === item.memberName)) {
-        merged.push(item);
-      }
-    });
-    await api("PUT", "/api/compilation", { week: weekKey, items: merged });
-    showToast(`&#10003; ${newItems.length}개 항목이 취합본(${weekKey})에 추가됐습니다.`);
-    checked.forEach((cb) => (cb.checked = false));
-    updateCompileCount();
-  });
-
   // 주차별 취합 네비게이션
   $("compPrevWeek").addEventListener("click", () => {
     let { year, week } = S.comp;
@@ -5177,28 +5129,6 @@ function wireEvents() {
 }
 
 /* ── 주차별 취합 ───────────────────────────────────────── */
-function updateCompileCount() {
-  const n = document.querySelectorAll(".compile-cb:checked").length;
-  $("archiveCompileCount").textContent = `${n}개 선택됨`;
-  $("archiveCompileAdd").disabled = n === 0;
-}
-
-function populateCompileWeekSelect() {
-  const sel = $("archiveCompileWeekSel");
-  sel.innerHTML = "";
-  const { year: cy, week: cw } = S.dash;
-  for (let i = 0; i < 8; i++) {
-    let y = cy, w = cw - i;
-    while (w <= 0) { y--; w += 52; }
-    const key = `${y}-W${String(w).padStart(2, "0")}`;
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = weekLabel(y, w);
-    if (i === 0) opt.selected = true;
-    sel.appendChild(opt);
-  }
-}
-
 async function renderCompilation() {
   if (!S.comp.year) S.comp = { year: S.dash.year, week: S.dash.week };
   const { year, week } = S.comp;
@@ -5224,7 +5154,6 @@ async function renderCompilation() {
     const weekKey0 = `${year}-W${String(week).padStart(2, "0")}`;
     result.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128203;</div>취합된 항목이 없습니다.<br>
       <button id="compAutoFill" class="btn-primary" style="margin-top:12px">&#128196; 이번 주 제출 보고서 자동 취합</button>
-      <div style="font-size:12px;color:var(--muted);margin-top:8px">또는 업무 아카이빙에서 항목을 선택해 추가하세요.</div>
     </div>`;
     $("compAutoFill")?.addEventListener("click", async () => {
       try {
