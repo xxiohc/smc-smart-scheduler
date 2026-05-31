@@ -120,6 +120,15 @@ function genId() {
   return crypto.randomBytes(8).toString("hex");
 }
 
+// ISO 주차(year, week) → 해당 주 목요일의 월 반환 (주차 소속 월 결정 기준)
+function weekToMonth(year, week) {
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = (jan4.getDay() + 6) % 7;
+  const ms = jan4.getTime() - dayOfWeek * 86400000 + (week - 1) * 7 * 86400000;
+  const thu = new Date(ms + 3 * 86400000); // 목요일
+  return thu.getMonth() + 1;
+}
+
 // ── GitHub Storage (모든 인스턴스가 공유하는 영구 저장소) ─────────────────────
 // GITHUB_DB_TOKEN + GITHUB_DB_REPO 환경변수가 있으면 GitHub API를 DB로 사용
 // 로컬 개발: 파일 폴백, Vercel: GitHub 브랜치 'db'의 db.json
@@ -559,7 +568,7 @@ async function handleSaveReport(req, res) {
     const isSubmitting = submitted === true && !wasSubmitted;
     db.reports[existing] = {
       ...db.reports[existing],
-      month: month || db.reports[existing].month,
+      month: weekToMonth(year, week),
       tasks: weekTasks,
       last_results: [],   // deprecated — cleared on re-save
       next_plans: [],     // deprecated — cleared on re-save
@@ -577,7 +586,7 @@ async function handleSaveReport(req, res) {
       member_id: memberId,
       year,
       week,
-      month: month || new Date().getMonth() + 1,
+      month: weekToMonth(year, week),
       tasks: weekTasks,
       last_results: [],
       next_plans: [],
@@ -1153,6 +1162,22 @@ async function handler(req, res) {
 
     if (path === "/api/cat-priority" && method === "GET") return handleGetCatPriority(req, res);
     if (path === "/api/cat-priority" && method === "PUT") return handleSaveCatPriority(req, res);
+
+    // 기존 보고서 month 필드를 year+week 기준으로 일괄 수정 (admin 전용)
+    if (path === "/api/fix-report-months" && method === "POST") {
+      const callerId = getMemberFromRequest(req);
+      if (!callerId) return err(res, "인증이 필요합니다.", 401);
+      const db = await loadDb();
+      const caller = db.members.find((m) => m.id === callerId);
+      if (caller?.role !== "admin") return err(res, "관리자만 사용 가능합니다.", 403);
+      let fixed = 0;
+      db.reports.forEach((r) => {
+        const correct = weekToMonth(r.year, r.week);
+        if (r.month !== correct) { r.month = correct; fixed++; }
+      });
+      await saveDb(db);
+      return json(res, { ok: true, fixed });
+    }
 
     if (path === "/api/recurring" && method === "GET") return handleGetRecurring(req, res, url);
     if (path === "/api/recurring" && method === "POST") return handleCreateRecurring(req, res);

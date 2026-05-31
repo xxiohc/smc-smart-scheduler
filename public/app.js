@@ -1121,7 +1121,10 @@ function autoResize(ta) {
 
 async function saveReport(submitted = false) {
   const { year, week } = S.dash;
-  const { month } = todayYW();
+  // 선택한 주차의 목요일(ISO 주차 대표일) 기준으로 month 결정
+  const ws = weekStart(year, week);
+  const thu = new Date(ws.getTime() + 3 * 86400000); // 월~일 중 목요일
+  const month = thu.getMonth() + 1;
   const btn = submitted ? $("submitReport") : $("saveReport");
   btn.disabled = true;
   btn.textContent = submitted ? "제출 중..." : "저장 중...";
