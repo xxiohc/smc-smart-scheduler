@@ -4985,7 +4985,18 @@ function wireEvents() {
     const wkRange   = `${fmt(ws)} ~ ${fmt(we)}`;
     const title     = `경영지원팀 주간업무`;
     const subTitle  = `${weekLabel(year, week)} (${wkRange})`;
-    const content   = document.getElementById("compilationResult").innerHTML;
+    // DOM 복사 후 PDF 불필요 요소 제거 (CSS display:none이 Windows에서 무시될 수 있어 직접 제거)
+    const _cloneResult = document.getElementById("compilationResult").cloneNode(true);
+    const _pdfHideSelectors = [
+      ".comp-item-del", ".comp-col-add-btn", ".comp-sec-add-btn",
+      ".comp-part-submit-btn", ".comp-part-submitted-badge", ".comp-part-pending-badge",
+      ".comp-drag-handle", ".comp-col-empty", ".empty-state", ".loading",
+      ".comp-mobile-nav", ".comp-mobile-dots",
+    ];
+    _pdfHideSelectors.forEach(sel => {
+      _cloneResult.querySelectorAll(sel).forEach(el => el.remove());
+    });
+    const content = _cloneResult.innerHTML;
     const printDate = fmt(new Date());
 
     // ── 해당 주 캘린더 이벤트 조회 ──
