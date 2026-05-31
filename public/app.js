@@ -571,7 +571,7 @@ function renderRoutineDueBanner(year, week) {
       const autoDate = itemEl?.dataset.date || "";
       S.weekTasks.push({
         text: task.category || task.title,
-        status: "in_progress",
+        status: autoDate ? "waiting" : "in_progress",
         date: autoDate,          // 주기일 (휴일 조정 포함) 자동 세팅
         cat1: task.cat1 || "", cat2: task.category || "",
       });
@@ -683,7 +683,7 @@ async function renderDashboard() {
 
 /* ── 이번 주 업무 리스트 (단일) ─────────────────────────── */
 const _WEEK_STATUSES  = ["in_progress", "done", "hold"];
-const _WEEK_STATUS_LBL = { in_progress: "진행중", done: "완료", hold: "보류" };
+const _WEEK_STATUS_LBL = { waiting: "계획", in_progress: "진행중", done: "완료", hold: "보류" };
 const _WEEK_LEGACY    = { pending: "in_progress", partial: "hold" };  // waiting은 이제 '계획' 활성 상태
 const _WEEK_ORDER     = { waiting: 0, in_progress: 1, hold: 2, done: 3 };
 
@@ -962,6 +962,10 @@ function createWeekTaskItem(item, idx) {
       dateIn.title             = "목표기한";
       dateIn.style.borderColor = "#f59e0b";
       dateIn.placeholder       = "목표기한";
+    } else if (st === "waiting") {
+      dateIn.title             = "예정일";
+      dateIn.style.borderColor = "var(--accent, #6366f1)";
+      dateIn.placeholder       = "예정일";
     } else {
       dateIn.title             = "마감일";
       dateIn.style.borderColor = "";
@@ -1035,7 +1039,7 @@ function createWeekTaskItem(item, idx) {
     const iDateLbl = document.createElement("span");
     iDateLbl.className = "wts-date-label";
     const applyInlineDateLbl = (val, st) => {
-      iDateLbl.textContent = st === "done" ? "완료일자" : "목표일자";
+      iDateLbl.textContent = st === "done" ? "완료일자" : st === "waiting" ? "예정일자" : "목표일자";
       iDateLbl.classList.remove("done-lbl");
       if (st === "done") iDateLbl.classList.add("done-lbl");
       iDateLbl.classList.toggle("visible", !!val);
@@ -3479,7 +3483,7 @@ async function renderRecurring() {
       const item = S.recurring.find((r) => r.id === btn.dataset.add);
       if (!item) return;
       const d = getRecurringDateForWeek(item, S.dash.year, S.dash.week);
-      S.weekTasks.push({ text: item.text, status: "in_progress", date: d ? dateKey(d) : "" });
+      S.weekTasks.push({ text: item.text, status: d ? "waiting" : "in_progress", date: d ? dateKey(d) : "" });
       renderWeekTasksList();
       btn.textContent = "추가됨 ✓";
       btn.disabled = true;
@@ -4123,7 +4127,7 @@ function buildRecurringItem(item, d, isThisWeek, num = null) {
     toWeek.className = "mytask-to-report";
     toWeek.textContent = "→ 이번 주";
     toWeek.addEventListener("click", () => {
-      S.weekTasks.push({ text: item.text, status: "in_progress", date: dateKey(d) });
+      S.weekTasks.push({ text: item.text, status: "waiting", date: dateKey(d) });
       renderWeekTasksList();
       toWeek.textContent = "추가됨 ✓";
       toWeek.disabled = true;
