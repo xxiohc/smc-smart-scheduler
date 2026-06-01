@@ -5680,12 +5680,14 @@ async function renderCompilation() {
     col.appendChild(colHead);
 
     const cat1Map = byPart[part];
+    // 정렬 우선순위: ① 주차별 드래그 순서 → ② 관리자 설정 우선순위 → ③ PART_CATEGORIES 키 순서 → ④ 가나다순
+    const _defaultCat1Order = Object.keys(PART_CATEGORIES[part] || {});
     const cat1Keys = Object.keys(cat1Map).sort((a, b) => {
       const weekOrd = currentOrder[part] || [];
       const ai = weekOrd.indexOf(a), bi = weekOrd.indexOf(b);
       if (ai >= 0 && bi >= 0) return ai - bi;
       if (ai >= 0) return -1; if (bi >= 0) return 1;
-      const prioOrd = CAT_PRIORITY[part] || [];
+      const prioOrd = CAT_PRIORITY[part]?.length ? CAT_PRIORITY[part] : _defaultCat1Order;
       const pi = prioOrd.indexOf(a), qi = prioOrd.indexOf(b);
       if (pi >= 0 && qi >= 0) return pi - qi;
       if (pi >= 0) return -1; if (qi >= 0) return 1;
