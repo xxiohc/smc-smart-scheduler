@@ -4980,7 +4980,7 @@ function wireEvents() {
     const isoFmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     const wkRange   = `${fmt(ws)} ~ ${fmt(we)}`;
     const title     = `경영지원팀 주간업무`;
-    const subTitle  = `${weekLabel(year, week)} (${wkRange})`;
+    const subTitle  = `${weekLabel(year, week)}`;
     // DOM 복사 후 PDF 불필요 요소 제거 (CSS display:none이 Windows에서 무시될 수 있어 직접 제거)
     const _cloneResult = document.getElementById("compilationResult").cloneNode(true);
     const _pdfHideSelectors = [
