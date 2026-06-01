@@ -5799,8 +5799,8 @@ async function renderCompilation() {
       });
     }
 
-    // ── 하단 항목 추가 버튼 (cat1 미지정 항목 추가용) ──
-    if (canEdit(part)) {
+    // ── 하단 항목 추가 버튼 (항목 있을 때만 표시, 빈 상태는 위에서 이미 추가) ──
+    if (canEdit(part) && cat1Keys.length > 0) {
       const addMoreBtn = document.createElement("button");
       addMoreBtn.className = "comp-col-add-btn";
       addMoreBtn.textContent = "+ 항목 추가";
