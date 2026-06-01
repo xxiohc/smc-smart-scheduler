@@ -5363,21 +5363,26 @@ async function renderCompilation() {
           <select id="emi_part" class="form-input">${partOpts}</select>
         </div>` : ""}
         <div class="form-field">
-          <label>카테고리(1)</label>
+          <label for="emi_cat1">카테고리(1)</label>
           <select id="emi_cat1" class="form-input">
             <option value="">-- 선택 --</option>
             ${getCat1Opts(initPart, initCat1)}
           </select>
         </div>
         <div class="form-field">
-          <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
+          <label for="emi_cat2">카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
           <input id="emi_cat2" class="form-input" placeholder="업무명 입력" value="${esc(initCat2)}" list="emi_cat2_list" />
           <datalist id="emi_cat2_list">
             ${getCat2Opts(initPart, initCat1)}
           </datalist>
         </div>
         <div class="form-field">
-          <label>담당자</label>
+          <label>세부업무 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <div id="emi_subs_wrap"></div>
+          <button id="emi_add_sub" class="comp-add-sub-btn" style="margin-top:4px">+ 세부업무 추가</button>
+        </div>
+        <div class="form-field">
+          <label for="emi_member">담당자</label>
           <select id="emi_member" class="form-input">
             <option value="">-- 선택 --</option>
             ${getMemberOpts(initPart, item.memberName || "")}
@@ -5391,14 +5396,9 @@ async function renderCompilation() {
             <button type="button" class="cmi-status-btn${initStatus === "done" ? " active" : ""}" data-key="done">완료</button>
           </div>
         </div>
-        <div class="form-field">
-          <label>기한 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
-          <input id="emi_date" type="date" class="form-input" value="${item.date || ""}" />
-        </div>
-        <div class="form-field">
-          <label>세부업무 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
-          <div id="emi_subs_wrap"></div>
-          <button id="emi_add_sub" class="comp-add-sub-btn" style="margin-top:4px">+ 세부업무 추가</button>
+        <div class="form-field" id="emi_date_field"${initStatus === "in_progress" ? ' style="display:none"' : ""}>
+          <label for="emi_date">기한 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <input id="emi_date" type="date" class="form-input" value="${item.date || ""}" onclick="this.showPicker?.()" />
         </div>
       </div>
       <div class="modal-footer">
@@ -5427,11 +5427,16 @@ async function renderCompilation() {
       $("emi_cat2_list").innerHTML = getCat2Opts(curPart, cat1Val);
       $("emi_cat2").value = "";
     });
-    // 상태 버튼 토글
+    // 상태 버튼 토글 + 기한 필드 숨김
+    const updateEmiDateVisibility = () => {
+      const df = $("emi_date_field");
+      if (df) df.style.display = selStatus === "in_progress" ? "none" : "";
+    };
     $("modalCard").querySelectorAll(".cmi-status-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         selStatus = btn.dataset.key;
         $("modalCard").querySelectorAll(".cmi-status-btn").forEach(b => b.classList.toggle("active", b.dataset.key === selStatus));
+        updateEmiDateVisibility();
       });
     });
 
@@ -5518,19 +5523,24 @@ async function renderCompilation() {
           <select id="cmi_part" class="form-input">${partOpts}</select>
         </div>` : ""}
         <div class="form-field">
-          <label>카테고리(1)</label>
+          <label for="cmi_cat1">카테고리(1)</label>
           <select id="cmi_cat1" class="form-input">
             <option value="">-- 선택 --</option>
             ${getCat1Opts(targetPart, defaultCat1)}
           </select>
         </div>
         <div class="form-field">
-          <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
+          <label for="cmi_cat2">카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
           <input id="cmi_cat2" class="form-input" placeholder="업무명 입력" list="cmi_cat2_list" />
           <datalist id="cmi_cat2_list"></datalist>
         </div>
         <div class="form-field">
-          <label>담당자</label>
+          <label>세부업무 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <div id="cmi_subs_wrap"></div>
+          <button id="cmi_add_sub" class="comp-add-sub-btn" style="margin-top:4px">+ 세부업무 추가</button>
+        </div>
+        <div class="form-field">
+          <label for="cmi_member">담당자</label>
           <select id="cmi_member" class="form-input">
             <option value="">-- 선택 --</option>
             ${getMemberOpts(targetPart)}
@@ -5544,14 +5554,9 @@ async function renderCompilation() {
             <button type="button" class="cmi-status-btn" data-key="done">완료</button>
           </div>
         </div>
-        <div class="form-field">
-          <label>기한 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
-          <input id="cmi_date" type="date" class="form-input" />
-        </div>
-        <div class="form-field">
-          <label>세부업무 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
-          <div id="cmi_subs_wrap"></div>
-          <button id="cmi_add_sub" class="comp-add-sub-btn" style="margin-top:4px">+ 세부업무 추가</button>
+        <div class="form-field" id="cmi_date_field">
+          <label for="cmi_date">기한 <span style="color:var(--muted);font-size:11px">(선택)</span></label>
+          <input id="cmi_date" type="date" class="form-input" onclick="this.showPicker?.()" />
         </div>
       </div>
       <div class="modal-footer">
@@ -5585,12 +5590,18 @@ async function renderCompilation() {
       $("cmi_cat2_list").innerHTML = getCat2Opts(targetPart, defaultCat1);
     }
 
-    // 상태 버튼 토글
+    // 상태 버튼 토글 + 기한 필드 숨김
     let selStatus = "in_progress";
+    const updateCmiDateVisibility = () => {
+      const df = $("cmi_date_field");
+      if (df) df.style.display = selStatus === "in_progress" ? "none" : "";
+    };
+    updateCmiDateVisibility();
     $("modalCard").querySelectorAll(".cmi-status-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         selStatus = btn.dataset.key;
         $("modalCard").querySelectorAll(".cmi-status-btn").forEach(b => b.classList.toggle("active", b.dataset.key === selStatus));
+        updateCmiDateVisibility();
       });
     });
 

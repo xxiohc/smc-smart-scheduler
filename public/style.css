@@ -2298,12 +2298,24 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 .cmi-status-group { display: flex; gap: 8px; }
 .cmi-status-btn {
   flex: 1; padding: 10px 0; border-radius: 8px;
-  border: 1.5px solid var(--border); background: #fff;
-  color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer;
+  border: 2px solid var(--border); background: var(--bg);
+  color: var(--subtle); font-size: 13px; font-weight: 700; cursor: pointer;
   transition: all .15s;
 }
-.cmi-status-btn:hover { border-color: var(--primary); color: var(--primary); }
-.cmi-status-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+/* 계획 — 보라/인디고 계열 */
+.cmi-status-btn[data-key="waiting"] { border-color: #a5b4fc; color: #6366f1; background: #eef2ff; }
+.cmi-status-btn[data-key="waiting"]:hover,
+.cmi-status-btn[data-key="waiting"].active { background: #6366f1; border-color: #6366f1; color: #fff; }
+/* 진행 — 파랑 계열 */
+.cmi-status-btn[data-key="in_progress"] { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
+.cmi-status-btn[data-key="in_progress"]:hover,
+.cmi-status-btn[data-key="in_progress"].active { background: #2563eb; border-color: #2563eb; color: #fff; }
+/* 완료 — 초록 계열 */
+.cmi-status-btn[data-key="done"] { border-color: #86efac; color: #16a34a; background: #f0fdf4; }
+.cmi-status-btn[data-key="done"]:hover,
+.cmi-status-btn[data-key="done"].active { background: #16a34a; border-color: #16a34a; color: #fff; }
+/* form-field label click area */
+.form-field label { cursor: pointer; }
 
 /* 취합 항목 추가 모달 - 세부업무 행 */
 .cmi-sub-row {
