@@ -968,10 +968,11 @@ input, select, textarea { outline: none; }
 .archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); padding: 5px 0; border-bottom: 1px solid var(--line); }
 .archive-item:last-child { border-bottom: none; }
 .archive-item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
-.archive-item.done .archive-item-dot        { background: var(--good); }
-.archive-item.in_progress .archive-item-dot { background: var(--primary); }
-.archive-item.hold .archive-item-dot        { background: var(--yellow); }
-.archive-item.partial .archive-item-dot     { background: var(--yellow); }
+.archive-item.done .archive-item-dot        { background: #16a34a; }
+.archive-item.in_progress .archive-item-dot { background: #3182f6; }
+.archive-item.waiting .archive-item-dot     { background: #f59e0b; }
+.archive-item.hold .archive-item-dot        { background: #f59e0b; }
+.archive-item.partial .archive-item-dot     { background: #f59e0b; }
 /* arc item layout */
 .arc-item-body { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
 .arc-item-right { display: none; } /* 날짜를 인라인으로 이동 — 오른쪽 플로팅 제거 */
