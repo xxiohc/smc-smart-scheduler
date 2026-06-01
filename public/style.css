@@ -337,7 +337,7 @@ input, select, textarea { outline: none; }
 /* ── 주간업무 2열 레이아웃 ─ */
 .week-tasks-layout {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 3fr 2fr;
   gap: 16px;
   align-items: start;
   margin-bottom: 16px;
@@ -362,15 +362,24 @@ input, select, textarea { outline: none; }
   background: var(--warn-soft, #fff0f1); color: var(--warn);
   border-radius: 20px;
 }
-.carryover-list { display: flex; flex-direction: column; gap: 6px; }
-.carryover-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: var(--radius-sm);
-  background: var(--bg); border: 1px solid var(--line);
+.carryover-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 카드 단위 */
+.co-card {
+  border-radius: var(--radius-sm); background: var(--bg);
+  border: 1px solid var(--line); overflow: hidden;
   transition: opacity 0.2s;
 }
-.carryover-item.co-done { opacity: 0.45; }
-.carryover-item.co-done .co-label { text-decoration: line-through; color: var(--muted); }
+.co-card.co-done .co-label,
+.co-card.co-all-done .co-label { text-decoration: line-through; color: var(--muted); }
+.co-card.co-done .co-dot,
+.co-card.co-all-done .co-dot { background: #16a34a !important; }
+
+/* 카드 헤더 */
+.co-card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px;
+}
 .co-dot {
   width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
   background: var(--muted);
@@ -381,12 +390,31 @@ input, select, textarea { outline: none; }
 .co-body { flex: 1; min-width: 0; }
 .co-label { font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .co-week  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* 세부업무 */
+.co-subs {
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column;
+}
+.co-sub-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--line);
+  transition: opacity 0.2s;
+}
+.co-sub-row:last-child { border-bottom: none; }
+.co-sub-row.co-done { opacity: 0.4; }
+.co-sub-row.co-done .co-sub-text { text-decoration: line-through; color: var(--muted); }
+.co-sub-text { flex: 1; min-width: 0; font-size: 12px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 완료 버튼 */
 .co-done-btn {
   flex-shrink: 0; padding: 3px 9px; font-size: 11px; font-weight: 600;
   border: 1.5px solid var(--good); border-radius: 20px;
   color: var(--good); background: none; cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.1s, color 0.1s; white-space: nowrap;
 }
+.co-done-btn-sm { padding: 2px 7px; font-size: 10px; }
 .co-done-btn:hover { background: var(--good); color: #fff; }
 .co-done-btn:disabled { opacity: 0.5; cursor: default; }
 

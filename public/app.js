@@ -688,9 +688,8 @@ async function renderCarryoverPanel() {
   if (!panel) return;
   panel.innerHTML = '<div class="carryover-loading">불러오는 중...</div>';
 
-  // 현재 주차 기준 최근 8주 탐색
   const { year, week } = S.dash;
-  let items = []; // { year, week, task }
+  let items = []; // { year, week, wLabel, task }
   let yw = prevWeek(year, week);
   for (let i = 0; i < 8; i++) {
     try {
@@ -716,66 +715,133 @@ async function renderCarryoverPanel() {
   }
   panel.classList.remove("carryover-empty");
 
+  // 미완료 항목 수 계산 (세부업무 있으면 미완료 세부업무 수, 없으면 태스크 1건)
+  const totalCount = items.reduce((acc, { task }) => {
+    const subs = (task.subtasks || []).filter(s => {
+      const ss = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+      return ss !== "done";
+    });
+    return acc + (subs.length > 0 ? subs.length : 1);
+  }, 0);
+
   panel.innerHTML = `
     <div class="carryover-header">
       <span class="carryover-title">⏳ 미완료 이월</span>
-      <span class="carryover-count">${items.length}건</span>
+      <span class="carryover-count">${totalCount}건</span>
     </div>
     <div class="carryover-list" id="carryoverList"></div>
   `;
 
   const list = document.getElementById("carryoverList");
+
   items.forEach(({ year: ry, week: rw, wLabel, task }) => {
     const st = _WEEK_LEGACY[task.status] || task.status || "in_progress";
     const cat1 = task.cat1 || "";
     const cat2 = task.cat2 || task.category || "";
-    const label = cat2 ? (cat1 ? `${cat1} › ${cat2}` : cat2) : (task.text || "업무");
+    const titleLabel = cat2 ? (cat1 ? `${cat1} › ${cat2}` : cat2) : (task.text || "업무");
+    const incompleteSubs = (task.subtasks || []).filter(s => {
+      const ss = _WEEK_LEGACY[s.status] || s.status || "in_progress";
+      return ss !== "done";
+    });
+    const hasSubs = incompleteSubs.length > 0;
 
-    const row = document.createElement("div");
-    row.className = "carryover-item";
-    row.dataset.year = ry;
-    row.dataset.week = rw;
-    row.dataset.taskId = task.id || "";
+    const card = document.createElement("div");
+    card.className = "co-card";
 
+    // ── 카드 헤더 (업무명 + 주차 + 세부업무 없을 때 완료 버튼)
     const dotClass = st === "in_progress" ? "in_progress" : "waiting";
-    row.innerHTML = `
+    const headerEl = document.createElement("div");
+    headerEl.className = "co-card-header";
+    headerEl.innerHTML = `
       <span class="co-dot ${dotClass}"></span>
       <div class="co-body">
-        <div class="co-label">${esc(label)}</div>
+        <div class="co-label">${esc(titleLabel)}</div>
         <div class="co-week">${wLabel}</div>
       </div>
-      <button class="co-done-btn" title="완료 처리">완료</button>
+      ${!hasSubs ? `<button class="co-done-btn">완료</button>` : ""}
     `;
 
-    row.querySelector(".co-done-btn").addEventListener("click", async (e) => {
-      e.currentTarget.disabled = true;
-      e.currentTarget.textContent = "...";
-      await markCarryoverDone(ry, rw, task.id);
-      row.classList.add("co-done");
-      row.querySelector(".co-done-btn").textContent = "✓";
-      row.querySelector(".co-dot").className = "co-dot done";
-    });
+    if (!hasSubs) {
+      headerEl.querySelector(".co-done-btn").addEventListener("click", async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "...";
+        await markCarryoverTaskDone(ry, rw, task.id);
+        card.classList.add("co-done");
+        btn.textContent = "✓";
+        headerEl.querySelector(".co-dot").className = "co-dot done";
+      });
+    }
+    card.appendChild(headerEl);
 
-    list.appendChild(row);
+    // ── 세부업무 목록
+    if (hasSubs) {
+      const subsEl = document.createElement("div");
+      subsEl.className = "co-subs";
+      incompleteSubs.forEach(sub => {
+        const ss = _WEEK_LEGACY[sub.status] || sub.status || "in_progress";
+        const subDot = ss === "in_progress" ? "in_progress" : "waiting";
+        const subRow = document.createElement("div");
+        subRow.className = "co-sub-row";
+        subRow.innerHTML = `
+          <span class="co-dot ${subDot}" style="width:7px;height:7px;margin-left:12px;flex-shrink:0"></span>
+          <span class="co-sub-text">${esc(sub.text || "")}</span>
+          <button class="co-done-btn co-done-btn-sm">완료</button>
+        `;
+        subRow.querySelector(".co-done-btn").addEventListener("click", async (e) => {
+          const btn = e.currentTarget;
+          btn.disabled = true; btn.textContent = "...";
+          await markCarryoverSubDone(ry, rw, task.id, sub.id);
+          subRow.classList.add("co-done");
+          btn.textContent = "✓";
+          subRow.querySelector(".co-dot").className = "co-dot done";
+          // 모든 세부업무 완료 시 카드 헤더도 done 처리
+          const remaining = subsEl.querySelectorAll(".co-sub-row:not(.co-done)");
+          if (remaining.length === 0) {
+            headerEl.querySelector(".co-dot").className = "co-dot done";
+            card.classList.add("co-all-done");
+          }
+        });
+        subsEl.appendChild(subRow);
+      });
+      card.appendChild(subsEl);
+    }
+
+    list.appendChild(card);
   });
 }
 
-async function markCarryoverDone(year, week, taskId) {
+async function markCarryoverTaskDone(year, week, taskId) {
   const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
   const r = reports[0];
   if (!r) return;
+  const tasks = getReportTasks(r).map(t =>
+    t.id === taskId ? { ...t, status: "done", date: dateKey(new Date()) } : t
+  );
+  await _saveCarryoverReport(year, week, r, tasks);
+}
+
+async function markCarryoverSubDone(year, week, taskId, subId) {
+  const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
+  const r = reports[0];
+  if (!r) return;
+  const today = dateKey(new Date());
   const tasks = getReportTasks(r).map(t => {
-    if (t.id === taskId) {
-      return { ...t, status: "done", date: dateKey(new Date()) };
-    }
-    return t;
+    if (t.id !== taskId) return t;
+    const subtasks = (t.subtasks || []).map(s =>
+      s.id === subId ? { ...s, status: "done", done: true, due_date: today } : s
+    );
+    // 모든 세부업무가 완료면 태스크도 완료
+    const allDone = subtasks.every(s => (_WEEK_LEGACY[s.status] || s.status) === "done");
+    return { ...t, subtasks, ...(allDone ? { status: "done", date: today } : {}) };
   });
+  await _saveCarryoverReport(year, week, r, tasks);
+}
+
+async function _saveCarryoverReport(year, week, r, tasks) {
   const ws = weekStart(year, week);
-  const thu = new Date(ws.getTime() + 3 * 86400000);
-  const month = thu.getMonth() + 1;
+  const month = (new Date(ws.getTime() + 3 * 86400000)).getMonth() + 1;
   await api("POST", "/api/reports", {
-    year, week, month,
-    tasks,
+    year, week, month, tasks,
     note: r.note || "",
     submitted: r.submitted || false,
   });
