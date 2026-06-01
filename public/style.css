@@ -967,7 +967,7 @@ input, select, textarea { outline: none; }
 .archive-items { display: flex; flex-direction: column; gap: 0; margin-bottom: 4px; }
 .archive-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); padding: 5px 0; border-bottom: 1px solid var(--line); }
 .archive-item:last-child { border-bottom: none; }
-.archive-item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--muted); margin-top: 4px; }
+.archive-item-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
 .archive-item.done .archive-item-dot        { background: var(--good); }
 .archive-item.in_progress .archive-item-dot { background: var(--primary); }
 .archive-item.hold .archive-item-dot        { background: var(--yellow); }
@@ -2051,7 +2051,7 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* 취합본 진행중 상태 텍스트 */
 .comp-status-prog { font-size: 11px; color: var(--primary); background: var(--primary-soft); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 /* 취합본에서 archive-item 내 삭제 버튼 위치 */
-#compilationResult .archive-item { align-items: flex-start; cursor: default; }
+#compilationResult .archive-item { align-items: center; cursor: default; }
 #compilationResult .comp-item-del { margin-top: 1px; }
 /* 편집 가능 항목 — 본문 hover 시 연한 배경 + 포인터 */
 #compilationResult .comp-item-editable .arc-item-body { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; transition: background 0.15s; }
