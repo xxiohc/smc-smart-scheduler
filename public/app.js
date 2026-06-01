@@ -5037,6 +5037,9 @@ function wireEvents() {
         .pdf-header-left { flex: 0 0 auto; }
         .pdf-title { font-size: 20px; font-weight: 800; color: #1b64da; letter-spacing: -0.3px; }
         .pdf-subtitle { font-size: 13px; color: #374151; margin-top: 3px; font-weight: 500; }
+        .pdf-legend { display: flex; gap: 12px; margin-top: 7px; flex-wrap: wrap; }
+        .pdf-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; }
+        .pdf-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         /* ─ 이벤트 그룹 영역 ─ */
         .pdf-events { flex: 1; display: flex; flex-direction: column; gap: 5px; padding-top: 4px; }
         .pdf-event-line { font-size: 12px; color: #374151; display: flex; align-items: baseline; gap: 6px; }
@@ -5094,6 +5097,12 @@ function wireEvents() {
         <div class="pdf-header-left">
           <div class="pdf-title">📋 ${title}</div>
           <div class="pdf-subtitle">${subTitle}</div>
+          <div class="pdf-legend">
+            <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#3182f6"></span>진행중</span>
+            <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#f59e0b"></span>계획</span>
+            <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#16a34a"></span>완료</span>
+            <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#9ca3af"></span>기타</span>
+          </div>
         </div>
         ${Object.keys(weekEventGroups).length ? `
         <div class="pdf-events">
