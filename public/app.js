@@ -5039,7 +5039,7 @@ function wireEvents() {
         .pdf-subtitle { font-size: 13px; color: #374151; margin-top: 3px; font-weight: 500; }
         .pdf-legend { display: flex; gap: 12px; margin-top: 7px; flex-wrap: wrap; }
         .pdf-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; }
-        .pdf-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .pdf-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
         /* ─ 이벤트 그룹 영역 ─ */
         .pdf-events { flex: 1; display: flex; flex-direction: column; gap: 5px; padding-top: 4px; }
         .pdf-event-line { font-size: 12px; color: #374151; display: flex; align-items: baseline; gap: 6px; }
