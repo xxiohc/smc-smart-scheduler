@@ -1690,10 +1690,14 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
   background: var(--primary-soft); color: var(--primary);
 }
 .archive-part-title {
-  font-size: 13px; font-weight: 700; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 10px 20px 6px; background: var(--bg);
-  border-bottom: 1px solid var(--line);
+  font-size: 12px; font-weight: 700; color: var(--primary);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 14px 20px 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.archive-part-title::after {
+  content: ""; flex: 1; height: 1.5px; background: var(--primary-soft);
+  border-radius: 2px;
 }
 
 /* ── Feedback ────────────────────────────────────────────── */
@@ -2266,17 +2270,34 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 }
 .comp-col-add-btn:hover { border-color: var(--primary); color: var(--primary); }
 .comp-sec-add-btn {
-  display: block; width: 100%; margin-top: 4px; padding: 4px 8px;
+  display: block; width: 100%; margin-top: 6px; padding: 6px 10px;
   border: none; background: none; color: var(--primary);
-  font-size: 11px; font-weight: 600; cursor: pointer; text-align: left;
-  opacity: 0.7;
+  font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
+  opacity: 0.75; line-height: 1.5;
 }
 .comp-sec-add-btn:hover { opacity: 1; text-decoration: underline; }
+
+/* 취합 항목 추가/수정 모달 구조 */
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-header .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 0; }
+.modal-close {
+  background: none; border: none; font-size: 18px; color: var(--muted);
+  cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1;
+}
+.modal-close:hover { background: var(--bg); color: var(--ink); }
+.modal-body { display: flex; flex-direction: column; gap: 16px; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);
+}
 
 /* 취합 항목 추가 모달 - 상태 버튼 */
 .cmi-status-group { display: flex; gap: 8px; }
 .cmi-status-btn {
-  flex: 1; padding: 8px 0; border-radius: 8px;
+  flex: 1; padding: 10px 0; border-radius: 8px;
   border: 1.5px solid var(--border); background: #fff;
   color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer;
   transition: all .15s;
@@ -2286,9 +2307,20 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 
 /* 취합 항목 추가 모달 - 세부업무 행 */
 .cmi-sub-row {
-  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
 }
 .cmi-sub-date { width: 130px !important; flex: 0 0 auto !important; }
+.comp-add-sub-btn {
+  background: none; border: 1.5px dashed var(--border); border-radius: 8px;
+  padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; width: 100%; text-align: center; transition: all .15s;
+}
+.comp-add-sub-btn:hover { border-color: var(--primary); color: var(--primary); }
+.comp-sub-del {
+  background: none; border: none; color: var(--muted); font-size: 13px;
+  cursor: pointer; padding: 4px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.comp-sub-del:hover { color: var(--warn); background: #fee2e2; }
 
 /* ═══════════════════════════════════════════════════════════
    FHD 데스크탑 가독성 보정 (24인치 FHD, 1x 디스플레이 전용)

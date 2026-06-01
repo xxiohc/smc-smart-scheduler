@@ -1290,10 +1290,6 @@ async function renderTeam(silent = false) {
             </div>
             <span class="team-submit-status ${submitClass}">${submitLabel}</span>
           </div>
-          ${r ? `
-            <div class="team-card-preview">${esc(preview.slice(0, 60))}${preview.length > 60 ? "…" : ""}</div>
-            <div class="team-card-count">진행중 ${inProgressCount}건 · 완료 ${doneCount}건${holdCount ? ` · 보류 ${holdCount}건` : ""} <span style="color:var(--muted)">(총 ${totalCount}건)</span></div>
-          ` : '<div class="team-card-preview" style="color:var(--muted)">아직 업무를 입력하지 않았습니다.</div>'}
         `;
         card.addEventListener("click", () => {
           const canEdit = S.member.role === "admin" || S.member.role === "leader";
@@ -5375,11 +5371,10 @@ async function renderCompilation() {
         </div>
         <div class="form-field">
           <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
-          <select id="emi_cat2_sel" class="form-input">
-            <option value="">-- 선택 또는 직접 입력 --</option>
-            ${getCat2Opts(initPart, initCat1, initCat2)}
-          </select>
-          <input id="emi_cat2" class="form-input" style="margin-top:6px" placeholder="직접 입력 (또는 위에서 선택)" value="${esc(initCat2)}" />
+          <input id="emi_cat2" class="form-input" placeholder="업무명 입력" value="${esc(initCat2)}" list="emi_cat2_list" />
+          <datalist id="emi_cat2_list">
+            ${getCat2Opts(initPart, initCat1)}
+          </datalist>
         </div>
         <div class="form-field">
           <label>담당자</label>
@@ -5394,7 +5389,6 @@ async function renderCompilation() {
             <button type="button" class="cmi-status-btn${initStatus === "waiting" ? " active" : ""}" data-key="waiting">계획</button>
             <button type="button" class="cmi-status-btn${initStatus === "in_progress" ? " active" : ""}" data-key="in_progress">진행</button>
             <button type="button" class="cmi-status-btn${initStatus === "done" ? " active" : ""}" data-key="done">완료</button>
-            <button type="button" class="cmi-status-btn${initStatus === "hold" ? " active" : ""}" data-key="hold">보류</button>
           </div>
         </div>
         <div class="form-field">
@@ -5422,20 +5416,16 @@ async function renderCompilation() {
       $("emi_part").addEventListener("change", () => {
         curPart = $("emi_part").value;
         $("emi_cat1").innerHTML = `<option value="">-- 선택 --</option>${getCat1Opts(curPart)}`;
-        $("emi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>`;
+        $("emi_cat2_list").innerHTML = getCat2Opts(curPart, "");
         $("emi_cat2").value = "";
         $("emi_member").innerHTML = `<option value="">-- 선택 --</option>${getMemberOpts(curPart)}`;
       });
     }
-    // cat1 변경 → cat2 목록
+    // cat1 변경 → datalist 갱신
     $("emi_cat1").addEventListener("change", () => {
       const cat1Val = $("emi_cat1").value;
-      $("emi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>${getCat2Opts(curPart, cat1Val)}`;
+      $("emi_cat2_list").innerHTML = getCat2Opts(curPart, cat1Val);
       $("emi_cat2").value = "";
-    });
-    // cat2 드롭다운 → input 반영
-    $("emi_cat2_sel").addEventListener("change", () => {
-      if ($("emi_cat2_sel").value) $("emi_cat2").value = $("emi_cat2_sel").value;
     });
     // 상태 버튼 토글
     $("modalCard").querySelectorAll(".cmi-status-btn").forEach(btn => {
@@ -5467,7 +5457,7 @@ async function renderCompilation() {
     $("compEditModalClose").addEventListener("click", close);
     $("emi_cancel").addEventListener("click", close);
     $("emi_save").addEventListener("click", async () => {
-      const cat2 = $("emi_cat2").value.trim() || $("emi_cat2_sel").value;
+      const cat2 = $("emi_cat2").value.trim();
       if (!cat2) { showToast("카테고리(2) / 업무명을 입력하세요.", "error"); $("emi_cat2").focus(); return; }
       const finalPart = isAdmin ? ($("emi_part").value || part) : part;
       const updated = {
@@ -5536,8 +5526,8 @@ async function renderCompilation() {
         </div>
         <div class="form-field">
           <label>카테고리(2) / 업무명 <span style="color:var(--danger)">*</span></label>
-          <select id="cmi_cat2_sel" class="form-input"><option value="">-- 선택 또는 직접 입력 --</option></select>
-          <input id="cmi_cat2" class="form-input" style="margin-top:6px" placeholder="직접 입력 (또는 위에서 선택)" />
+          <input id="cmi_cat2" class="form-input" placeholder="업무명 입력" list="cmi_cat2_list" />
+          <datalist id="cmi_cat2_list"></datalist>
         </div>
         <div class="form-field">
           <label>담당자</label>
@@ -5578,28 +5568,22 @@ async function renderCompilation() {
       $("cmi_part").addEventListener("change", () => {
         curPart = $("cmi_part").value;
         $("cmi_cat1").innerHTML = `<option value="">-- 선택 --</option>${getCat1Opts(curPart)}`;
-        $("cmi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>`;
+        $("cmi_cat2_list").innerHTML = "";
         $("cmi_cat2").value = "";
         $("cmi_member").innerHTML = `<option value="">-- 선택 --</option>${getMemberOpts(curPart)}`;
       });
     }
 
-    // cat1 변경 시 cat2 드롭다운 갱신
+    // cat1 변경 시 datalist 갱신
     $("cmi_cat1").addEventListener("change", () => {
       const cat1Val = $("cmi_cat1").value;
-      const opts = getCat2Opts(curPart, cat1Val);
-      $("cmi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>${opts}`;
+      $("cmi_cat2_list").innerHTML = getCat2Opts(curPart, cat1Val);
       $("cmi_cat2").value = "";
     });
-    // 초기 cat2 옵션 세팅
+    // 초기 datalist 세팅
     if (defaultCat1) {
-      $("cmi_cat2_sel").innerHTML = `<option value="">-- 선택 또는 직접 입력 --</option>${getCat2Opts(targetPart, defaultCat1)}`;
+      $("cmi_cat2_list").innerHTML = getCat2Opts(targetPart, defaultCat1);
     }
-
-    // cat2 드롭다운 선택 시 input에 반영
-    $("cmi_cat2_sel").addEventListener("change", () => {
-      if ($("cmi_cat2_sel").value) $("cmi_cat2").value = $("cmi_cat2_sel").value;
-    });
 
     // 상태 버튼 토글
     let selStatus = "in_progress";
@@ -5632,7 +5616,7 @@ async function renderCompilation() {
     $("compModalClose").addEventListener("click", close);
     $("cmi_cancel").addEventListener("click", close);
     $("cmi_save").addEventListener("click", async () => {
-      const cat2 = $("cmi_cat2").value.trim() || $("cmi_cat2_sel").value;
+      const cat2 = $("cmi_cat2").value.trim();
       if (!cat2) { showToast("카테고리(2) / 업무명을 입력하세요.", "error"); $("cmi_cat2").focus(); return; }
       const finalPart = isAdmin ? ($("cmi_part").value || targetPart) : targetPart;
       const newItem = {
@@ -5784,14 +5768,7 @@ async function renderCompilation() {
       });
     }
 
-    // ── 새 섹션(cat1) 항목 추가 버튼 ──
-    if (canEdit(part) && cat1Keys.length > 0) {
-      const addMoreBtn = document.createElement("button");
-      addMoreBtn.className = "comp-col-add-btn";
-      addMoreBtn.textContent = "+ 항목 추가";
-      addMoreBtn.addEventListener("click", () => openAddItemModal(part));
-      col.appendChild(addMoreBtn);
-    }
+    // 하단 중복 항목추가 버튼 제거 — 각 섹션 내 "+ 추가"로 통합
 
     // ── 파트 취합완료 버튼 (파트장: 본인 파트만 / 팀장: 표시 없음) ──
     if (isLeader && S.member.part === part) {
