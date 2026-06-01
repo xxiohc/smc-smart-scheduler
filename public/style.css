@@ -2051,7 +2051,8 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 /* 취합본 진행중 상태 텍스트 */
 .comp-status-prog { font-size: 11px; color: var(--primary); background: var(--primary-soft); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 /* 취합본에서 archive-item 내 삭제 버튼 위치 */
-#compilationResult .archive-item { align-items: center; cursor: default; }
+#compilationResult .archive-item { align-items: flex-start; cursor: default; }
+#compilationResult .archive-item-dot { margin-top: 5px; }
 #compilationResult .comp-item-del { margin-top: 1px; }
 /* 편집 가능 항목 — 본문 hover 시 연한 배경 + 포인터 */
 #compilationResult .comp-item-editable .arc-item-body { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; transition: background 0.15s; }
