@@ -674,11 +674,111 @@ async function renderDashboard() {
     }
     renderWeekTasksList();
     renderWeekSubmitGuard();
+    renderCarryoverPanel(); // 미완료 이월 패널 (비동기, 독립)
     await renderMyTasks();
     renderMyFeedbacks();
   } catch (e) {
     console.error(e);
   }
+}
+
+/* ── 미완료 이월 패널 ────────────────────────────────────── */
+async function renderCarryoverPanel() {
+  const panel = $("carryoverPanel");
+  if (!panel) return;
+  panel.innerHTML = '<div class="carryover-loading">불러오는 중...</div>';
+
+  // 현재 주차 기준 최근 8주 탐색
+  const { year, week } = S.dash;
+  let items = []; // { year, week, task }
+  let yw = prevWeek(year, week);
+  for (let i = 0; i < 8; i++) {
+    try {
+      const reports = await api("GET", `/api/reports?year=${yw.year}&week=${yw.week}&memberId=${S.member.id}`);
+      const r = reports[0];
+      if (r) {
+        const wLabel = `${yw.year}년 ${yw.week}주차`;
+        getReportTasks(r).forEach(t => {
+          const st = _WEEK_LEGACY[t.status] || t.status || "in_progress";
+          if (st !== "done" && st !== "hold") {
+            items.push({ year: yw.year, week: yw.week, wLabel, task: t });
+          }
+        });
+      }
+    } catch (_) {}
+    yw = prevWeek(yw.year, yw.week);
+  }
+
+  if (items.length === 0) {
+    panel.innerHTML = '';
+    panel.classList.add("carryover-empty");
+    return;
+  }
+  panel.classList.remove("carryover-empty");
+
+  panel.innerHTML = `
+    <div class="carryover-header">
+      <span class="carryover-title">⏳ 미완료 이월</span>
+      <span class="carryover-count">${items.length}건</span>
+    </div>
+    <div class="carryover-list" id="carryoverList"></div>
+  `;
+
+  const list = document.getElementById("carryoverList");
+  items.forEach(({ year: ry, week: rw, wLabel, task }) => {
+    const st = _WEEK_LEGACY[task.status] || task.status || "in_progress";
+    const cat1 = task.cat1 || "";
+    const cat2 = task.cat2 || task.category || "";
+    const label = cat2 ? (cat1 ? `${cat1} › ${cat2}` : cat2) : (task.text || "업무");
+
+    const row = document.createElement("div");
+    row.className = "carryover-item";
+    row.dataset.year = ry;
+    row.dataset.week = rw;
+    row.dataset.taskId = task.id || "";
+
+    const dotClass = st === "in_progress" ? "in_progress" : "waiting";
+    row.innerHTML = `
+      <span class="co-dot ${dotClass}"></span>
+      <div class="co-body">
+        <div class="co-label">${esc(label)}</div>
+        <div class="co-week">${wLabel}</div>
+      </div>
+      <button class="co-done-btn" title="완료 처리">완료</button>
+    `;
+
+    row.querySelector(".co-done-btn").addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true;
+      e.currentTarget.textContent = "...";
+      await markCarryoverDone(ry, rw, task.id);
+      row.classList.add("co-done");
+      row.querySelector(".co-done-btn").textContent = "✓";
+      row.querySelector(".co-dot").className = "co-dot done";
+    });
+
+    list.appendChild(row);
+  });
+}
+
+async function markCarryoverDone(year, week, taskId) {
+  const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
+  const r = reports[0];
+  if (!r) return;
+  const tasks = getReportTasks(r).map(t => {
+    if (t.id === taskId) {
+      return { ...t, status: "done", date: dateKey(new Date()) };
+    }
+    return t;
+  });
+  const ws = weekStart(year, week);
+  const thu = new Date(ws.getTime() + 3 * 86400000);
+  const month = thu.getMonth() + 1;
+  await api("POST", "/api/reports", {
+    year, week, month,
+    tasks,
+    note: r.note || "",
+    submitted: r.submitted || false,
+  });
 }
 
 /* ── 이번 주 업무 리스트 (단일) ─────────────────────────── */

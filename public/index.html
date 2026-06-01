@@ -157,18 +157,22 @@
         <!-- 루틴 업무 마감 알림 배너 -->
         <div id="routineDueBanner" class="routine-due-banner hidden"></div>
 
-        <!-- 이번 주 업무 현황 (단일 리스트) -->
-        <div class="week-report-card">
-          <div class="week-report-head">
-            <h3>이번 주 업무 현황</h3>
-            <div class="week-report-btns">
-              <button class="btn-ghost small" id="importPrevWeekBtn">↩ 지난 주 진행 업무 불러오기</button>
-              <button class="btn-ghost small" id="importLastYearBtn">📅 작년 동기 업무 불러오기</button>
-              <button class="btn-ghost small" id="importWeekTasksBtn">📋 내 루틴 업무 리스트 불러오기</button>
-              <button class="btn-ghost small" id="addWeekTaskBtn">+ 직접 입력</button>
+        <!-- 이번 주 업무 현황 + 미완료 이월 패널 -->
+        <div class="week-tasks-layout">
+          <div class="week-report-card">
+            <div class="week-report-head">
+              <h3>이번 주 업무 현황</h3>
+              <div class="week-report-btns">
+                <button class="btn-ghost small" id="importPrevWeekBtn">↩ 지난 주 진행 업무 불러오기</button>
+                <button class="btn-ghost small" id="importLastYearBtn">📅 작년 동기 업무 불러오기</button>
+                <button class="btn-ghost small" id="importWeekTasksBtn">📋 내 루틴 업무 리스트 불러오기</button>
+                <button class="btn-ghost small" id="addWeekTaskBtn">+ 직접 입력</button>
+              </div>
             </div>
+            <div id="weekTasksList" class="task-list"></div>
           </div>
-          <div id="weekTasksList" class="task-list"></div>
+          <!-- 미완료 이월 패널 -->
+          <div id="carryoverPanel" class="carryover-panel"></div>
         </div>
 
         <!-- 특이사항 hidden (서버 저장용으로 DOM 유지) -->
