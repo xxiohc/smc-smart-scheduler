@@ -5779,7 +5779,14 @@ async function renderCompilation() {
       });
     }
 
-    // 하단 중복 항목추가 버튼 제거 — 각 섹션 내 "+ 추가"로 통합
+    // ── 하단 항목 추가 버튼 (cat1 미지정 항목 추가용) ──
+    if (canEdit(part)) {
+      const addMoreBtn = document.createElement("button");
+      addMoreBtn.className = "comp-col-add-btn";
+      addMoreBtn.textContent = "+ 항목 추가";
+      addMoreBtn.addEventListener("click", () => openAddItemModal(part));
+      col.appendChild(addMoreBtn);
+    }
 
     // ── 파트 취합완료 버튼 (파트장: 본인 파트만 / 팀장: 표시 없음) ──
     if (isLeader && S.member.part === part) {
