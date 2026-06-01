@@ -4987,7 +4987,7 @@ function wireEvents() {
       ".comp-item-del", ".comp-col-add-btn", ".comp-sec-add-btn",
       ".comp-part-submit-btn", ".comp-part-submitted-badge", ".comp-part-pending-badge",
       ".comp-drag-handle", ".comp-col-empty", ".empty-state", ".loading",
-      ".comp-mobile-nav", ".comp-mobile-dots",
+      ".comp-mobile-nav", ".comp-mobile-dots", ".comp-status-legend",
     ];
     _pdfHideSelectors.forEach(sel => {
       _cloneResult.querySelectorAll(sel).forEach(el => el.remove());
@@ -5101,7 +5101,6 @@ function wireEvents() {
             <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#3182f6"></span>진행중</span>
             <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#f59e0b"></span>계획</span>
             <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#16a34a"></span>완료</span>
-            <span class="pdf-legend-item"><span class="pdf-legend-dot" style="background:#9ca3af"></span>기타</span>
           </div>
         </div>
         ${Object.keys(weekEventGroups).length ? `
@@ -5265,6 +5264,16 @@ async function renderCompilation() {
   }
 
   result.innerHTML = "";
+
+  // ── 상태 범례 ──
+  const legendEl = document.createElement("div");
+  legendEl.className = "comp-status-legend";
+  legendEl.innerHTML = `
+    <span class="comp-legend-item"><span class="comp-legend-dot in_progress"></span>진행중</span>
+    <span class="comp-legend-item"><span class="comp-legend-dot waiting"></span>계획</span>
+    <span class="comp-legend-item"><span class="comp-legend-dot done"></span>완료</span>
+  `;
+  result.appendChild(legendEl);
 
   // ── 최신 리포트에서 status/date/subtasks 동기화 ──
   try {
