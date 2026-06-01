@@ -2457,7 +2457,8 @@ async function doArchiveSearch() {
                   const done = s.done || sSt === "done";
                   const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
                   const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
-                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
+                  const doneBadge = done ? `<span class="arc-status-badge done" style="font-size:10px;padding:1px 5px">완료</span>` : "";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}${doneBadge}</div>`;
                 }).join("")}</div>`
               : "";
             const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
@@ -2915,7 +2916,8 @@ async function doYearlyArchive(year, result) {
                   const done = s.done || sSt === "done";
                   const sDate = s.due_date ? s.due_date.slice(5).replace("-", "/") : "";
                   const sDateHtml = sDate ? `<span class="arc-sub-date">(${sDate})</span>` : "";
-                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}</div>`;
+                  const doneBadge = done ? `<span class="arc-status-badge done" style="font-size:10px;padding:1px 5px">완료</span>` : "";
+                  return `<div class="arc-sub-row${done ? " done" : ""}"><span class="arc-sub-dot"></span><span class="arc-sub-text">${esc(s.text)}</span>${sDateHtml}${doneBadge}</div>`;
                 }).join("")}</div>`
               : "";
             const hasMainText = i.text && i.text !== (i.cat2 || i.category) && i.text !== i.cat1;
