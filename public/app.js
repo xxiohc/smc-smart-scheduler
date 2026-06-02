@@ -809,7 +809,7 @@ async function renderCarryoverPanel() {
         const subRow = document.createElement("div");
         subRow.className = "co-sub-row";
         subRow.innerHTML = `
-          <span class="co-dot ${subDot}" style="width:7px;height:7px;margin-left:12px;flex-shrink:0"></span>
+          <span class="co-dot co-sub-dot ${subDot}"></span>
           <span class="co-sub-text">${esc(sub.text || "")}</span>
           <button class="co-done-btn co-done-btn-sm">완료</button>
         `;
