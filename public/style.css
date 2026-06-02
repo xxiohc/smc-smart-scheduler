@@ -1867,10 +1867,10 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 
 /* ── Week report button row ──────────────────────────────── */
 .week-report-btns {
-  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
 }
 .week-report-btns .btn-ghost.small {
-  font-size: 12px; padding: 4px 10px;
+  font-size: 12px; padding: 5px 12px;
 }
 
 /* ── Task hierarchy headers (내 업무 대분류/중분류) ─────────── */
