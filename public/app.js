@@ -638,8 +638,8 @@ function renderWeekSubmitGuard() {
     <span class="wsg-icon">✓</span>
     <span class="wsg-msg">제출 완료된 업무입니다. 추가·삭제는 불가합니다. 수정이 필요하면 상단 <strong>제출 취소</strong> 버튼을 이용하세요.</span>
   `;
-  const head = document.querySelector(".week-report-head");
-  if (head) head.parentNode.insertBefore(guard, head);
+  const importRow = document.getElementById("weekReportImport");
+  if (importRow) importRow.parentNode.insertBefore(guard, importRow);
 }
 
 async function renderDashboard() {

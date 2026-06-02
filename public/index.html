@@ -143,13 +143,6 @@
             </div>
             <p class="page-desc">이번 주 업무 현황을 관리하고 제출하세요.</p>
           </div>
-          <div class="dash-header-right">
-            <div class="dash-submit-btns">
-              <button id="saveReport" class="btn-ghost">임시저장</button>
-              <button id="submitReport" class="btn-primary">제출하기</button>
-              <span id="saveStatus" class="save-status"></span>
-            </div>
-          </div>
         </div>
 
         <div id="reportStatusBadge" class="status-badge hidden"></div>
@@ -160,14 +153,22 @@
         <!-- 이번 주 업무 현황 + 미완료 이월 패널 -->
         <div class="week-tasks-layout">
           <div class="week-report-card">
+            <!-- 타이틀 + 저장/제출 버튼 -->
             <div class="week-report-head">
               <h3>이번 주 업무 현황</h3>
-              <div class="week-report-btns">
-                <button class="btn-ghost small" id="importPrevWeekBtn">↩ 과거 진행 업무 불러오기</button>
-                <button class="btn-ghost small" id="importLastYearBtn">📅 작년 동기 불러오기</button>
-                <button class="btn-ghost small" id="importWeekTasksBtn">📋 내 루틴 업무 불러오기</button>
-                <button class="btn-ghost small" id="addWeekTaskBtn">+ 직접 입력</button>
+              <div class="dash-submit-btns">
+                <button id="saveReport" class="btn-ghost small">임시저장</button>
+                <button id="submitReport" class="btn-primary small">제출하기</button>
+                <span id="saveStatus" class="save-status"></span>
               </div>
+            </div>
+            <!-- 제출완료 배너는 JS가 여기(week-report-import 앞)에 삽입 -->
+            <!-- 불러오기 버튼 -->
+            <div class="week-report-btns" id="weekReportImport">
+              <button class="btn-ghost small" id="importPrevWeekBtn">↩ 과거 진행 업무 불러오기</button>
+              <button class="btn-ghost small" id="importLastYearBtn">📅 작년 동기 불러오기</button>
+              <button class="btn-ghost small" id="importWeekTasksBtn">📋 내 루틴 업무 불러오기</button>
+              <button class="btn-ghost small" id="addWeekTaskBtn">+ 직접 입력</button>
             </div>
             <div id="weekTasksList" class="task-list"></div>
           </div>
