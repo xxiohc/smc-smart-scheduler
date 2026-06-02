@@ -715,13 +715,42 @@ async function renderCarryoverPanel() {
   }
   panel.classList.remove("carryover-empty");
 
-  // 미완료 항목 수 계산 (세부업무 있으면 미완료 세부업무 수, 없으면 태스크 1건)
-  const totalCount = items.reduce((acc, { task }) => {
-    const subs = (task.subtasks || []).filter(s => {
-      const ss = _WEEK_LEGACY[s.status] || s.status || "in_progress";
-      return ss !== "done";
+  // ── cat1+cat2 기준 그룹핑 · 중복 제거 ──
+  // items는 최신 주차부터 정렬됨 → 같은 키라면 첫 번째(최신)가 대표
+  const groupMap = new Map(); // key → { cat1, cat2, titleLabel, status, repYear, repWeek, repTaskId, wLabel, mergedSubs }
+  items.forEach(({ year: ry, week: rw, wLabel, task }) => {
+    const cat1 = task.cat1 || "";
+    const cat2 = task.cat2 || task.category || "";
+    const key = cat2 ? `${cat1}||${cat2}` : `__text__${task.text || task.id}`;
+    const incompSubs = (task.subtasks || []).filter(s => (_WEEK_LEGACY[s.status] || s.status) !== "done");
+
+    if (!groupMap.has(key)) {
+      const st = _WEEK_LEGACY[task.status] || task.status || "in_progress";
+      groupMap.set(key, {
+        cat1, cat2,
+        titleLabel: cat2 ? (cat1 ? `${cat1} › ${cat2}` : cat2) : (task.text || "업무"),
+        status: st,
+        repYear: ry, repWeek: rw, repTaskId: task.id, wLabel,
+        // 세부업무: { text → { sub, year, week, taskId } } 로 중복 제거
+        subsMap: new Map(),
+      });
+    }
+    const g = groupMap.get(key);
+    // 세부업무 병합 — text가 같으면 최신(첫 등장)만 유지
+    incompSubs.forEach(s => {
+      const txt = (s.text || "").trim();
+      if (txt && !g.subsMap.has(txt)) {
+        g.subsMap.set(txt, { sub: s, year: ry, week: rw, taskId: task.id });
+      }
     });
-    return acc + (subs.length > 0 ? subs.length : 1);
+  });
+
+  const groups = [...groupMap.values()];
+
+  // 미완료 건수 계산
+  const totalCount = groups.reduce((acc, g) => {
+    const subCount = g.subsMap.size;
+    return acc + (subCount > 0 ? subCount : 1);
   }, 0);
 
   panel.innerHTML = `
@@ -759,22 +788,13 @@ async function renderCarryoverPanel() {
     parent.appendChild(picker);
   }
 
-  items.forEach(({ year: ry, week: rw, wLabel, task }) => {
-    const st = _WEEK_LEGACY[task.status] || task.status || "in_progress";
-    const cat1 = task.cat1 || "";
-    const cat2 = task.cat2 || task.category || "";
-    const titleLabel = cat2 ? (cat1 ? `${cat1} › ${cat2}` : cat2) : (task.text || "업무");
-    const incompleteSubs = (task.subtasks || []).filter(s => {
-      const ss = _WEEK_LEGACY[s.status] || s.status || "in_progress";
-      return ss !== "done";
-    });
-    const hasSubs = incompleteSubs.length > 0;
-
+  groups.forEach(({ titleLabel, status, repYear, repWeek, repTaskId, wLabel, subsMap }) => {
+    const hasSubs = subsMap.size > 0;
     const card = document.createElement("div");
     card.className = "co-card";
 
     // ── 카드 헤더
-    const dotClass = st === "in_progress" ? "in_progress" : "waiting";
+    const dotClass = status === "in_progress" ? "in_progress" : "waiting";
     const headerEl = document.createElement("div");
     headerEl.className = "co-card-header";
     headerEl.innerHTML = `
@@ -790,7 +810,7 @@ async function renderCarryoverPanel() {
       const btn = headerEl.querySelector(".co-done-btn");
       btn.addEventListener("click", () => {
         showCoDatePicker(btn, async (date) => {
-          await markCarryoverTaskDone(ry, rw, task.id, date);
+          await markCarryoverTaskDone(repYear, repWeek, repTaskId, date);
           card.classList.add("co-done");
           headerEl.querySelector(".co-dot").className = "co-dot done";
           headerEl.querySelector(".co-date-picker").innerHTML = "<span style='font-size:11px;color:var(--good)'>✓ 완료</span>";
@@ -799,11 +819,11 @@ async function renderCarryoverPanel() {
     }
     card.appendChild(headerEl);
 
-    // ── 세부업무 목록
+    // ── 세부업무 목록 (중복 제거 후 병합된 목록)
     if (hasSubs) {
       const subsEl = document.createElement("div");
       subsEl.className = "co-subs";
-      incompleteSubs.forEach(sub => {
+      subsMap.forEach(({ sub, year: sy, week: sw, taskId }) => {
         const ss = _WEEK_LEGACY[sub.status] || sub.status || "in_progress";
         const subDot = ss === "in_progress" ? "in_progress" : "waiting";
         const subRow = document.createElement("div");
@@ -816,12 +836,11 @@ async function renderCarryoverPanel() {
         const btn = subRow.querySelector(".co-done-btn");
         btn.addEventListener("click", () => {
           showCoDatePicker(btn, async (date) => {
-            await markCarryoverSubDone(ry, rw, task.id, sub.id, date);
+            await markCarryoverSubDone(sy, sw, taskId, sub.id, date);
             subRow.classList.add("co-done");
             subRow.querySelector(".co-dot").className = "co-dot done";
             subRow.querySelector(".co-date-picker").innerHTML = "<span style='font-size:10px;color:var(--good)'>✓</span>";
-            const remaining = subsEl.querySelectorAll(".co-sub-row:not(.co-done)");
-            if (remaining.length === 0) {
+            if (subsEl.querySelectorAll(".co-sub-row:not(.co-done)").length === 0) {
               headerEl.querySelector(".co-dot").className = "co-dot done";
               card.classList.add("co-all-done");
             }
