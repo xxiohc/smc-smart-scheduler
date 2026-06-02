@@ -755,7 +755,7 @@ async function renderCarryoverPanel() {
 
   panel.innerHTML = `
     <div class="carryover-header">
-      <span class="carryover-title">⏳ 미완료 이월</span>
+      <span class="carryover-title">✅ 완료 확인 필요</span>
       <span class="carryover-count">${totalCount}건</span>
     </div>
     <div class="carryover-list" id="carryoverList"></div>
