@@ -734,6 +734,31 @@ async function renderCarryoverPanel() {
 
   const list = document.getElementById("carryoverList");
 
+  // 완료 버튼 → 날짜 선택기 표시 헬퍼
+  function showCoDatePicker(btn, onConfirm) {
+    const parent = btn.parentElement;
+    btn.style.display = "none";
+    const picker = document.createElement("div");
+    picker.className = "co-date-picker";
+    picker.innerHTML = `
+      <input type="date" class="co-date-input" value="${dateKey(new Date())}">
+      <button class="co-confirm-btn">확인</button>
+      <button class="co-cancel-btn">✕</button>
+    `;
+    picker.querySelector(".co-confirm-btn").addEventListener("click", async () => {
+      const val = picker.querySelector(".co-date-input").value;
+      if (!val) return;
+      picker.querySelector(".co-confirm-btn").disabled = true;
+      picker.querySelector(".co-confirm-btn").textContent = "...";
+      await onConfirm(val);
+    });
+    picker.querySelector(".co-cancel-btn").addEventListener("click", () => {
+      picker.remove();
+      btn.style.display = "";
+    });
+    parent.appendChild(picker);
+  }
+
   items.forEach(({ year: ry, week: rw, wLabel, task }) => {
     const st = _WEEK_LEGACY[task.status] || task.status || "in_progress";
     const cat1 = task.cat1 || "";
@@ -748,7 +773,7 @@ async function renderCarryoverPanel() {
     const card = document.createElement("div");
     card.className = "co-card";
 
-    // ── 카드 헤더 (업무명 + 주차 + 세부업무 없을 때 완료 버튼)
+    // ── 카드 헤더
     const dotClass = st === "in_progress" ? "in_progress" : "waiting";
     const headerEl = document.createElement("div");
     headerEl.className = "co-card-header";
@@ -762,13 +787,14 @@ async function renderCarryoverPanel() {
     `;
 
     if (!hasSubs) {
-      headerEl.querySelector(".co-done-btn").addEventListener("click", async (e) => {
-        const btn = e.currentTarget;
-        btn.disabled = true; btn.textContent = "...";
-        await markCarryoverTaskDone(ry, rw, task.id);
-        card.classList.add("co-done");
-        btn.textContent = "✓";
-        headerEl.querySelector(".co-dot").className = "co-dot done";
+      const btn = headerEl.querySelector(".co-done-btn");
+      btn.addEventListener("click", () => {
+        showCoDatePicker(btn, async (date) => {
+          await markCarryoverTaskDone(ry, rw, task.id, date);
+          card.classList.add("co-done");
+          headerEl.querySelector(".co-dot").className = "co-dot done";
+          headerEl.querySelector(".co-date-picker").innerHTML = "<span style='font-size:11px;color:var(--good)'>✓ 완료</span>";
+        });
       });
     }
     card.appendChild(headerEl);
@@ -787,19 +813,19 @@ async function renderCarryoverPanel() {
           <span class="co-sub-text">${esc(sub.text || "")}</span>
           <button class="co-done-btn co-done-btn-sm">완료</button>
         `;
-        subRow.querySelector(".co-done-btn").addEventListener("click", async (e) => {
-          const btn = e.currentTarget;
-          btn.disabled = true; btn.textContent = "...";
-          await markCarryoverSubDone(ry, rw, task.id, sub.id);
-          subRow.classList.add("co-done");
-          btn.textContent = "✓";
-          subRow.querySelector(".co-dot").className = "co-dot done";
-          // 모든 세부업무 완료 시 카드 헤더도 done 처리
-          const remaining = subsEl.querySelectorAll(".co-sub-row:not(.co-done)");
-          if (remaining.length === 0) {
-            headerEl.querySelector(".co-dot").className = "co-dot done";
-            card.classList.add("co-all-done");
-          }
+        const btn = subRow.querySelector(".co-done-btn");
+        btn.addEventListener("click", () => {
+          showCoDatePicker(btn, async (date) => {
+            await markCarryoverSubDone(ry, rw, task.id, sub.id, date);
+            subRow.classList.add("co-done");
+            subRow.querySelector(".co-dot").className = "co-dot done";
+            subRow.querySelector(".co-date-picker").innerHTML = "<span style='font-size:10px;color:var(--good)'>✓</span>";
+            const remaining = subsEl.querySelectorAll(".co-sub-row:not(.co-done)");
+            if (remaining.length === 0) {
+              headerEl.querySelector(".co-dot").className = "co-dot done";
+              card.classList.add("co-all-done");
+            }
+          });
         });
         subsEl.appendChild(subRow);
       });
@@ -810,29 +836,27 @@ async function renderCarryoverPanel() {
   });
 }
 
-async function markCarryoverTaskDone(year, week, taskId) {
+async function markCarryoverTaskDone(year, week, taskId, date) {
   const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
   const r = reports[0];
   if (!r) return;
   const tasks = getReportTasks(r).map(t =>
-    t.id === taskId ? { ...t, status: "done", date: dateKey(new Date()) } : t
+    t.id === taskId ? { ...t, status: "done", date } : t
   );
   await _saveCarryoverReport(year, week, r, tasks);
 }
 
-async function markCarryoverSubDone(year, week, taskId, subId) {
+async function markCarryoverSubDone(year, week, taskId, subId, date) {
   const reports = await api("GET", `/api/reports?year=${year}&week=${week}&memberId=${S.member.id}`);
   const r = reports[0];
   if (!r) return;
-  const today = dateKey(new Date());
   const tasks = getReportTasks(r).map(t => {
     if (t.id !== taskId) return t;
     const subtasks = (t.subtasks || []).map(s =>
-      s.id === subId ? { ...s, status: "done", done: true, due_date: today } : s
+      s.id === subId ? { ...s, status: "done", done: true, due_date: date } : s
     );
-    // 모든 세부업무가 완료면 태스크도 완료
     const allDone = subtasks.every(s => (_WEEK_LEGACY[s.status] || s.status) === "done");
-    return { ...t, subtasks, ...(allDone ? { status: "done", date: today } : {}) };
+    return { ...t, subtasks, ...(allDone ? { status: "done", date } : {}) };
   });
   await _saveCarryoverReport(year, week, r, tasks);
 }

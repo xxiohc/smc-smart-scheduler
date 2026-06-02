@@ -418,6 +418,31 @@ input, select, textarea { outline: none; }
 .co-done-btn:hover { background: var(--good); color: #fff; }
 .co-done-btn:disabled { opacity: 0.5; cursor: default; }
 
+/* 완료 날짜 선택기 */
+.co-date-picker {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.co-date-input {
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 2px 5px; font-size: 11px; color: var(--ink);
+  background: var(--bg); width: 120px;
+}
+.co-date-input:focus { outline: none; border-color: var(--primary); }
+.co-confirm-btn {
+  padding: 2px 8px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid var(--primary); border-radius: 20px;
+  color: var(--primary); background: none; cursor: pointer;
+  white-space: nowrap; transition: background 0.1s, color 0.1s;
+}
+.co-confirm-btn:hover { background: var(--primary); color: #fff; }
+.co-confirm-btn:disabled { opacity: 0.5; cursor: default; }
+.co-cancel-btn {
+  padding: 2px 6px; font-size: 11px;
+  border: none; background: none; color: var(--muted);
+  cursor: pointer; border-radius: 4px;
+}
+.co-cancel-btn:hover { background: var(--bg); color: var(--ink); }
+
 .week-report-card {
   background: var(--card); border-radius: var(--radius);
   padding: 20px; box-shadow: var(--shadow-sm);
