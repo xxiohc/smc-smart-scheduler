@@ -11,68 +11,8 @@
 </head>
 <body>
 
-<!-- 로그인 오버레이 -->
-<div id="loginOverlay" class="login-overlay">
-  <!-- 대기실 패널 (접속자 초과 시 표시) -->
-  <div id="waitingRoom" class="waiting-room hidden">
-    <div class="waiting-spinner"></div>
-    <p class="waiting-title">잠시만 기다려 주세요</p>
-    <p class="waiting-desc">현재 접속자가 많아 잠시 대기 중입니다.<br/>자동으로 연결되면 로그인 화면이 나타납니다.</p>
-    <p id="waitingCountdown" class="waiting-countdown"></p>
-  </div>
-
-  <div id="loginCard" class="login-card">
-    <img src="/smc-logo.png" alt="SMC" class="login-logo" />
-    <h1 class="login-title">경영지원팀<br/>스마트 스케줄러</h1>
-    <p class="login-sub">© jiseokchoi</p>
-
-    <div class="form-field">
-      <label>이름 선택</label>
-      <select id="loginName">
-        <option value="">-- 이름을 선택하세요 --</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>PIN 번호</label>
-      <input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력" />
-    </div>
-    <button id="loginBtn" class="btn-primary full">로그인</button>
-    <p id="loginError" class="login-error"></p>
-
-    <div class="login-divider"></div>
-
-    <!-- PIN 변경 토글 -->
-    <button id="showChangePinBtn" class="login-link-btn">🔑 PIN 변경</button>
-
-    <!-- PIN 변경 폼 (기본 hidden) -->
-    <div id="changePinForm" class="change-pin-form hidden">
-      <p class="change-pin-title">🔑 PIN 번호 변경</p>
-      <div class="form-field">
-        <label>이름 선택</label>
-        <select id="cpName">
-          <option value="">-- 이름을 선택하세요 --</option>
-        </select>
-      </div>
-      <div class="form-field">
-        <label>현재 PIN</label>
-        <input id="cpOldPin" type="password" inputmode="numeric" maxlength="8" placeholder="현재 PIN 입력" />
-      </div>
-      <div class="form-field">
-        <label>새 PIN (4~8자리)</label>
-        <input id="cpNewPin" type="password" inputmode="numeric" maxlength="8" placeholder="새 PIN 입력" />
-      </div>
-      <div class="form-field">
-        <label>새 PIN 확인</label>
-        <input id="cpNewPin2" type="password" inputmode="numeric" maxlength="8" placeholder="새 PIN 재입력" />
-      </div>
-      <button id="changePinBtn" class="btn-primary full">변경하기</button>
-      <p id="changePinMsg" class="login-error"></p>
-    </div>
-  </div><!-- /loginCard -->
-</div><!-- /loginOverlay -->
-
 <!-- 앱 본체 -->
-<div id="app" class="app hidden">
+<div id="app" class="app">
 
   <!-- 헤더 -->
   <header class="app-header">
@@ -90,6 +30,48 @@
       </div>
     </div>
   </header>
+
+  <!-- 로그인 화면 -->
+  <div id="loginScreen" class="login-screen">
+    <div>
+      <form id="loginForm" class="login-card">
+        <h2>로그인</h2>
+        <p class="login-desc">이름과 PIN을 입력하세요.</p>
+        <datalist id="memberList"></datalist>
+        <label>이름
+          <input id="loginName" type="text" list="memberList" placeholder="예: 홍길동" autocomplete="off" />
+        </label>
+        <label>PIN
+          <input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력" />
+        </label>
+        <p id="loginError" class="form-error"></p>
+        <button type="submit" class="btn-primary full">로그인</button>
+      </form>
+      <div class="login-extra">
+        <button id="showChangePinBtn" class="login-link-btn">🔑 PIN 변경</button>
+        <div id="changePinForm" class="login-card hidden" style="margin-top:4px">
+          <p class="change-pin-title">PIN 번호 변경</p>
+          <label>이름
+            <input id="cpName" type="text" list="memberList" placeholder="예: 홍길동" autocomplete="off" />
+          </label>
+          <label>현재 PIN
+            <input id="cpOldPin" type="password" inputmode="numeric" maxlength="8" placeholder="현재 PIN" />
+          </label>
+          <label>새 PIN (4~8자리)
+            <input id="cpNewPin" type="password" inputmode="numeric" maxlength="8" placeholder="새 PIN" />
+          </label>
+          <label>새 PIN 확인
+            <input id="cpNewPin2" type="password" inputmode="numeric" maxlength="8" placeholder="새 PIN 재입력" />
+          </label>
+          <p id="changePinMsg" class="form-error"></p>
+          <button id="changePinBtn" class="btn-primary full">변경하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 화면 -->
+  <div id="mainScreen" class="hidden">
 
   <!-- 탭 내비게이션 -->
   <nav class="tab-nav">
@@ -389,7 +371,8 @@
     </section>
 
   </main>
-</div>
+  </div><!-- /mainScreen -->
+</div><!-- /app -->
 
 <!-- 모달 -->
 <div id="modal" class="modal-overlay hidden">

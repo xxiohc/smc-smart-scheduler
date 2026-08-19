@@ -256,25 +256,15 @@ async function loadMemberList() {
     const members = await api("GET", "/api/members");
     S.members = members;
 
-    // 로그인 이름 선택
-    const sel = $("loginName");
-    sel.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
-    members.forEach((m) => {
-      const o = document.createElement("option");
-      o.value = m.name;
-      o.textContent = `${m.name} (${m.part})`;
-      sel.appendChild(o);
-    });
-
-    // PIN 변경 이름 선택 (독립)
-    const cpSel = $("cpName");
-    if (cpSel) {
-      cpSel.innerHTML = '<option value="">-- 이름을 선택하세요 --</option>';
+    // 로그인 이름 자동완성 datalist
+    const dl = $("memberList");
+    if (dl) {
+      dl.innerHTML = "";
       members.forEach((m) => {
         const o = document.createElement("option");
         o.value = m.name;
-        o.textContent = `${m.name} (${m.part})`;
-        cpSel.appendChild(o);
+        o.label = m.part;
+        dl.appendChild(o);
       });
     }
   } catch {}
@@ -284,7 +274,7 @@ async function doLogin() {
   const name = $("loginName").value.trim();
   const pin = $("loginPin").value.trim();
   $("loginError").textContent = "";
-  if (!name) { $("loginError").textContent = "이름을 선택하세요."; return; }
+  if (!name) { $("loginError").textContent = "이름을 입력하세요."; return; }
   if (!pin) { $("loginError").textContent = "PIN을 입력하세요."; return; }
   try {
     const data = await api("POST", "/api/login", { name, pin });
@@ -303,9 +293,8 @@ async function doChangePin() {
   const newPin = $("cpNewPin").value.trim();
   const newPin2 = $("cpNewPin2").value.trim();
   const msg = $("changePinMsg");
-  msg.style.color = "var(--warn)";
   msg.textContent = "";
-  if (!name) { msg.textContent = "❗ 이름을 먼저 선택하세요."; return; }
+  if (!name) { msg.textContent = "❗ 이름을 먼저 입력하세요."; return; }
   if (!oldPin) { msg.textContent = "❗ 현재 PIN을 입력하세요."; return; }
   if (!newPin) { msg.textContent = "❗ 새 PIN을 입력하세요."; return; }
   if (!/^\d{4,8}$/.test(newPin)) { msg.textContent = "❗ 새 PIN은 4~8자리 숫자여야 합니다."; return; }
@@ -350,8 +339,8 @@ async function tryAutoLogin() {
 
 /* ── App entry ────────────────────────────────────────── */
 function enterApp() {
-  $("loginOverlay").classList.add("hidden");
-  $("app").classList.remove("hidden");
+  $("loginScreen").classList.add("hidden");
+  $("mainScreen").classList.remove("hidden");
 
   // 로그인한 사람에 맞게 사용자별 데이터 초기화
   S.tasks = [];
@@ -3503,7 +3492,7 @@ function openMemberModal(id) {
   const isNew = !member;
   const modal = $("modal");
   const card = $("modalCard");
-  const parts = ["경영지원팀", "경영관리파트", "재무관리파트", "구매파트", "의공파트"];
+  const parts = [...new Set(S.members.map((m) => m.part).filter(Boolean))];
 
   const curBdType = member?.birthday_type || "solar";
   card.innerHTML = `
@@ -4955,19 +4944,14 @@ function esc(s) {
 
 /* ── Event wiring ─────────────────────────────────────── */
 function wireEvents() {
-  $("loginBtn").addEventListener("click", doLogin);
-  $("loginPin").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+  $("loginForm").addEventListener("submit", (e) => { e.preventDefault(); doLogin(); });
 
   // PIN 변경 토글
   $("showChangePinBtn").addEventListener("click", () => {
     const form = $("changePinForm");
     const isHidden = form.classList.toggle("hidden");
-    const card = document.querySelector(".login-card");
-    // PIN 폼 열릴 때 카드 패딩 축소, 닫힐 때 원복
-    if (card) card.classList.toggle("pin-form-open", !isHidden);
     $("showChangePinBtn").textContent = isHidden ? "🔑 PIN 변경" : "✕ 닫기";
     $("changePinMsg").textContent = "";
-    // 폼이 열리면 스크롤을 아래로 내려 이름 선택 필드가 보이게
     if (!isHidden) setTimeout(() => form.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   });
   $("changePinBtn").addEventListener("click", doChangePin);
@@ -4976,9 +4960,11 @@ function wireEvents() {
     S.token = null;
     S.member = null;
     localStorage.removeItem("smc_token");
-    $("app").classList.add("hidden");
-    $("loginOverlay").classList.remove("hidden");
+    $("mainScreen").classList.add("hidden");
+    $("loginScreen").classList.remove("hidden");
+    $("loginName").value = "";
     $("loginPin").value = "";
+    $("loginError").textContent = "";
     loadMemberList();
   });
 
@@ -6130,17 +6116,8 @@ async function checkServerStatus() {
  * @param {number} retryAfterSec - 재시도 간격(초)
  */
 function startWaiting(onReady, retryAfterSec = 5) {
-  const wr = $("waitingRoom");
-  const loginCard = $("loginCard");
-  if (wr) wr.classList.remove("hidden");
-  if (loginCard) loginCard.style.display = "none";
-
   let remaining = retryAfterSec;
-  const cd = $("waitingCountdown");
-  const tick = () => {
-    if (cd) cd.textContent = `${remaining}초 후 재시도…`;
-    remaining--;
-  };
+  const tick = () => { remaining--; };
   tick();
 
   clearInterval(_waitingInterval);
@@ -6149,12 +6126,8 @@ function startWaiting(onReady, retryAfterSec = 5) {
     clearInterval(_waitingInterval);
     const status = await checkServerStatus();
     if (!status.busy) {
-      // 접속 가능 → 대기실 숨기고 로그인 화면 표시
-      if (wr) wr.classList.add("hidden");
-      if (loginCard) loginCard.style.display = "";
       onReady();
     } else {
-      // 아직 바쁨 → 재시도
       startWaiting(onReady, retryAfterSec);
     }
   }, 1000);
