@@ -24,7 +24,7 @@
           <span class="header-title">스마트 스케줄러</span>
         </div>
       </div>
-      <div class="header-right">
+      <div class="header-right" id="headerRight" style="display:none">
         <div id="headerUser" class="header-user"></div>
         <button id="logoutBtn" class="btn-ghost">로그아웃</button>
       </div>
@@ -36,13 +36,13 @@
     <div>
       <form id="loginForm" class="login-card">
         <h2>로그인</h2>
-        <p class="login-desc">이름과 PIN을 입력하세요.</p>
+        <p class="login-desc">담당자 이름과 PIN을 입력하세요.</p>
         <datalist id="memberList"></datalist>
         <label>이름
           <input id="loginName" type="text" list="memberList" placeholder="예: 홍길동" autocomplete="off" />
         </label>
         <label>PIN
-          <input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력" />
+          <input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="4자리 숫자" />
         </label>
         <p id="loginError" class="form-error"></p>
         <button type="submit" class="btn-primary full">로그인</button>

@@ -341,6 +341,7 @@ async function tryAutoLogin() {
 function enterApp() {
   $("loginScreen").classList.add("hidden");
   $("mainScreen").classList.remove("hidden");
+  $("headerRight").style.display = "";
 
   // 로그인한 사람에 맞게 사용자별 데이터 초기화
   S.tasks = [];
@@ -4961,6 +4962,7 @@ function wireEvents() {
     S.member = null;
     localStorage.removeItem("smc_token");
     $("mainScreen").classList.add("hidden");
+    $("headerRight").style.display = "none";
     $("loginScreen").classList.remove("hidden");
     $("loginName").value = "";
     $("loginPin").value = "";
