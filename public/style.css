@@ -1,13 +1,13 @@
 /* ── Design tokens (Toss-style) ──────────────────────────── */
 :root {
-  --bg: #f2f4f8;
+  --bg: #f9fafb;
   --surface: #ffffff;
   --card: #ffffff;
-  --ink: #111827;
-  --muted: #6b7280;
-  --subtle: #374151;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
+  --ink: #191f28;
+  --muted: #6b7684;
+  --subtle: #333d4b;
+  --line: #f2f4f6;
+  --line-strong: #e8ebed;
   --primary: #3182f6;
   --primary-dark: #1b64da;
   --primary-soft: #eef6ff;
@@ -158,13 +158,15 @@ input, select, textarea { outline: none; }
 .header-inner {
   max-width: 1280px; margin: 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  height: 80px; padding: 0 32px;
+  height: 80px; padding: 0 24px;
 }
 .header-brand { display: flex; align-items: center; gap: 16px; }
 .header-logo { width: 140px; height: 40px; object-fit: contain; }
 .header-text { display: flex; flex-direction: column; justify-content: center; }
-.header-sub { display: block; font-size: 10px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; line-height: 1; }
-.header-title { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+.header-sub { display: block; font-size: 10px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: #8b95a1; margin-bottom: 4px; line-height: 1; }
+.header-title-row { display: flex; align-items: center; gap: 8px; }
+.header-title { font-size: 22px; font-weight: 700; color: #191f28; letter-spacing: -0.03em; line-height: 1; white-space: nowrap; }
+.header-copy { font-size: 11px; color: #c9cdd2; line-height: 1; }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .header-user {
   font-size: 13px; font-weight: 600; color: var(--ink);
@@ -1900,9 +1902,10 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 
   /* Header */
   .header-inner { padding: 0 16px; height: 64px; }
-  .header-logo { width: 110px; height: 32px; }
+  .header-logo { width: 84px; height: 24px; }
   .header-sub { display: none; }
-  .header-title { font-size: 17px; }
+  .header-copy { display: none; }
+  .header-title { font-size: 14px; }
   .header-user { font-size: 12px; padding: 4px 10px; }
   #logoutBtn { font-size: 12px; padding: 6px 10px; }
 
@@ -2089,7 +2092,7 @@ details[open] > .subtask-summary::before { transform: rotate(90deg); }
 @media (max-width: 360px) {
   .shell { padding: 14px 10px 36px; }
   .header-inner { padding: 0 8px; height: 48px; }
-  .header-logo { width: 72px; height: 20px; }
+  .header-logo { width: 84px; height: 24px; }
   .header-user { max-width: 90px; font-size: 10px; }
   .tab-nav { top: 48px; }
   .tab-btn { font-size: 10px; padding: 7px 6px 5px; }
